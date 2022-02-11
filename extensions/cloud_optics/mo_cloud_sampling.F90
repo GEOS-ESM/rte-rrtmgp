@@ -17,6 +17,9 @@
 ! Users supply random numbers with order ngpt,nlay,ncol
 !   These are only accessed if cloud_fraction(icol,ilay) > 0 so many values don't need to be filled in
 !
+! The new sampled_urand_gen_max_ran(), however, permits more general overlap schemes, e.g., with
+! inhomogeneous sub-gridscale condensate. If used, urand(ngpt,nlay,ncol) must be filled completely.
+!
 ! -------------------------------------------------------------------------------------------------
 module mo_cloud_sampling
   use mo_rte_kind,      only: wp, wl
@@ -26,7 +29,7 @@ module mo_cloud_sampling
                               ty_optical_props_nstr
   implicit none
   private
-  public :: draw_samples, sampled_mask_max_ran, sampled_mask_exp_ran
+  public :: draw_samples, sampled_mask_max_ran, sampled_mask_exp_ran, sampled_urand_gen_max_ran
 contains
   ! -------------------------------------------------------------------------------------------------
   !
@@ -290,6 +293,139 @@ contains
     end do
 
   end function sampled_mask_exp_ran
+  ! -------------------------------------------------------------------------------------------------
+  !
+  !   Given input uniform random numbers urand(ngpt,nlay,ncol) on [0,1), update them to impose a
+  ! generalized maximum-random correlation structure based on alpha(ncol,nlay-1) in [0,1], where
+  ! alpha(:,i) is the binomial probability of maximum versus random correlation between layers i
+  ! and i+1.
+  !   Unlike the exp_ran method above, the alpha are rigorously enforced and NOT effectively set
+  ! to zero across intervening clear layers. In fact, cloud fraction is not even input to this
+  ! routine, and correlation imposition occurs throughout the whole gridcolumn. This is slower
+  ! than the sampled_mask methods, but permits wider usage, as in the following examples:
+  !
+  !   (1) simple generalized maximum-random cloud overlap:
+  !         err = sampled_urand_gen_max_ran(urand,alpha)
+  !         do icol = 1,col
+  !           do ilay = 1,nlay
+  !             cld_mask(icol,ilay,1:ngpt) = urand(1:ngpt,ilay,icol) < cld_frac(icol,ilay)
+  !           end do
+  !         end do
+  !         err = draw_samples(cld_mask,cld_opt_props_bnd,cld_opt_props_gpt)
+  !
+  !   (2) generalized maximum-random correlation in total water (vapor + condensate) 
+  !   coupled with the assumption that total water in excess of saturation is condensate:
+  !         logical(wl), dimension(ngpt) :: cloudy
+  !         real(wp),    dimension(ngpt) :: qtot, qcond
+  !         real(wp)                     :: qcond_mean
+  !         err = sampled_urand_gen_max_ran(urand,alpha)
+  !         do icol = 1,col
+  !           do ilay = 1,nlay
+  !             ! subgrid-scale cloud mask and condensate
+  !             qtot = inverse_qtot_cdf(urand(1:ngpt,ilay,icol))
+  !             cloudy = qtot > qsat(icol,ilay)
+  !             where (cloudy)
+  !               qcond = qtot - qsat(icol,ilay)
+  !             elsewhere
+  !               qcond = 0.
+  !             endwhere
+  !             cld_mask(icol,ilay,1:ngpt) = cloudy
+  !             ! mean in-cloud condensate and ratio of sub-gridscale value to it.
+  !             ! cwp is the condensate path in [g/m2]
+  !             ncld = count(cloudy)
+  !             if (ncld > 0)
+  !               qcond_mean = sum(qcond,mask=cloudy) / ncld
+  !               ratio(icol,ilay,1:ngpt) = qcond / qcond_mean
+  !               cwp(icol,ilay) = qcond_mean * dp(icol,ilay) * 1000. / grav
+  !             else
+  !               ratio(icol,ilay,1:ngpt) = 0.
+  !               cwp(icol,ilay) = 0.
+  !             end if
+  !           end do
+  !         end do
+  !         ! band cloud optical props for mean in-cloud cloud water paths.
+  !         ! assume phase split (ice_frac) and effective radii are constant in the layer.
+  !         err = cloud_optics%cloud_optics( &
+  !           cwp*(1-ice_frac), cwp*ice_frac, rel, rei, &
+  !           cld_opt_props_bnd)
+  !         ! g-point cloud optical props with scaling to sub-gridscale water paths.
+  !         ! (since tau for each phase is linear in the phase's water path and since
+  !         ! the scaling <ratio> applies equally to both phases, the total g-point
+  !         ! optical thickness tau will scale with <ratio>.
+  !         err = draw_samples(cld_mask,cld_opt_props_bnd,cld_opt_props_gpt)
+  !         cld_opt_props_gpt%tau = cld_opt_props_gpt%tau * ratio
+  !
+  !   (3) a scheme like Oreopulos et al. 2012 (doi:10.5194/acp-12-9097-2012) in which
+  !   both cloud presence and cloud condensate are separately generalized maximum-random: 
+  !         logical(wl), dimension(ngpt) :: cloudy
+  !         real(wp),    dimension(ngpt) :: qcond
+  !         real(wp)                     :: qcond_mean
+  !         err = sampled_urand_gen_max_ran(urand_frac,alpha)
+  !         err = sampled_urand_gen_max_ran(urand_cond,beta)
+  !         do icol = 1,col
+  !           do ilay = 1,nlay
+  !             ! subgrid-scale cloud mask and condensate
+  !             cloudy = urand_frac(1:ngpt,ilay,icol) < cld_frac(icol,ilay)
+  !             where (cloudy)
+  !               qcond = inverse_qcond_cdf(urand_cond(1:ngpt,ilay,icol))
+  !             elsewhere
+  !               qcond = 0.
+  !             endwhere
+  !             cld_mask(icol,ilay,1:ngpt) = cloudy
+  !             ncld = count(cloudy)
+  !             if (ncld > 0)
+  !               qcond_mean = sum(qcond,mask=cloudy) / ncld
+  !               ratio(icol,ilay,1:ngpt) = qcond / qcond_mean
+  !               cwp(icol,ilay) = qcond_mean * dp(icol,ilay) * 1000. / grav
+  !             else
+  !               ratio(icol,ilay,1:ngpt) = 0.
+  !               cwp(icol,ilay) = 0.
+  !             end if
+  !           end do
+  !         end do
+  !         err = cloud_optics%cloud_optics( &
+  !           cwp*(1-ice_frac), cwp*ice_frac, rel, rei, &
+  !           cld_opt_props_bnd)
+  !         err = draw_samples(cld_mask,cld_opt_props_bnd,cld_opt_props_gpt)
+  !         cld_opt_props_gpt%tau = cld_opt_props_gpt%tau * ratio
+  !
+  function sampled_urand_gen_max_ran(urand,alpha) result(error_msg)
+    real(wp), dimension(:,:,:), intent(inout) :: urand     ! ngpt,nlay,ncol
+    real(wp), dimension(:,:),   intent(in   ) :: alpha     ! ncol,nlay-1
+    character(len=128)                        :: error_msg
+    ! ------------------------
+    integer :: ncol, nlay, ngpt, icol, ilay
+    ! ------------------------
+    !
+    ! Error checking
+    ! We could also check urand in [0,1) but that would be computationally heavy
+    !
+    error_msg = ""
+    ngpt = size(urand, 1)
+    nlay = size(urand, 2)
+    ncol = size(urand, 3)
+    if(any([size(alpha,1),size(alpha,2)] /= [ncol,nlay-1])) then
+      error_msg = "sampled_urand_gen_max_ran: sizes of urand(ngpt,nlay,ncol) and alpha(ncol,nlay-1) are inconsistent"
+      return
+    end if
+    if(any(alpha < 0._wp) .or. any(alpha > 1._wp)) then
+      error_msg = "sampled_urand_gen_max_ran: alpha values out of range [0,1]"
+      return
+    end if
+    ! ------------------------
+    !
+    ! For each column, enforce alpha overlap structure:
+    !   for each pair of layers, apply maximum inter-layer correlation with
+    !   probability alpha and random correlation (no change in urand) otherwise.
+    !
+    do icol = 1,ncol
+      do ilay = 2,nlay
+        where (urand(1:ngpt,ilay,icol) < alpha(icol,ilay-1))
+          urand(1:ngpt,ilay,icol) = urand(1:ngpt,ilay-1,icol) 
+        end where
+      end do
+    end do
+  end function sampled_urand_gen_max_ran
   ! -------------------------------------------------------------------------------------------------
   !
   ! Apply a true/false cloud mask to a homogeneous field
