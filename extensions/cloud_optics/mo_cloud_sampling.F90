@@ -351,11 +351,11 @@ contains
   !         ! g-point cloud optical props with scaling to sub-gridscale water paths.
   !         ! (since tau for each phase is linear in the phase's water path and since
   !         ! the scaling <ratio> applies equally to both phases, the total g-point
-  !         ! optical thickness tau will scale with <ratio>.
+  !         ! optical thickness tau will scale with <ratio>.)
   !         err = draw_samples(cld_mask,cld_opt_props_bnd,cld_opt_props_gpt)
   !         cld_opt_props_gpt%tau = cld_opt_props_gpt%tau * ratio
   !
-  !   (3) a scheme like Oreopulos et al. 2012 (doi:10.5194/acp-12-9097-2012) in which
+  !   (3) a scheme like Oreopoulos et al. 2012 (doi:10.5194/acp-12-9097-2012) in which
   !   both cloud presence and cloud condensate are separately generalized maximum-random: 
   !         logical(wl), dimension(ngpt) :: cloudy
   !         real(wp),    dimension(ngpt) :: qcond
