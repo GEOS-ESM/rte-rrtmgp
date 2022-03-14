@@ -305,7 +305,7 @@ contains
   ! than the sampled_mask methods, but permits wider usage, as in the following examples:
   !
   !   (1) simple generalized maximum-random cloud overlap:
-  !         err = sampled_urand_gen_max_ran(urand,alpha)
+  !         err = sampled_urand_gen_max_ran(alpha,urand,urand_aux)
   !         do icol = 1,col
   !           do ilay = 1,nlay
   !             cld_mask(icol,ilay,1:ngpt) = urand(1:ngpt,ilay,icol) < cld_frac(icol,ilay)
@@ -318,7 +318,7 @@ contains
   !         logical(wl), dimension(ngpt) :: cloudy
   !         real(wp),    dimension(ngpt) :: qtot, qcond
   !         real(wp)                     :: qcond_mean
-  !         err = sampled_urand_gen_max_ran(urand,alpha)
+  !         err = sampled_urand_gen_max_ran(alpha,urand,urand_aux)
   !         do icol = 1,col
   !           do ilay = 1,nlay
   !             ! subgrid-scale cloud mask and condensate
@@ -360,8 +360,8 @@ contains
   !         logical(wl), dimension(ngpt) :: cloudy
   !         real(wp),    dimension(ngpt) :: qcond
   !         real(wp)                     :: qcond_mean
-  !         err = sampled_urand_gen_max_ran(urand_frac,alpha)
-  !         err = sampled_urand_gen_max_ran(urand_cond,beta)
+  !         err = sampled_urand_gen_max_ran(alpha,urand_frac,urand_frac_aux)
+  !         err = sampled_urand_gen_max_ran(beta, urand_cond,urand_cond_aux)
   !         do icol = 1,col
   !           do ilay = 1,nlay
   !             ! subgrid-scale cloud mask and condensate
@@ -389,21 +389,26 @@ contains
   !         err = draw_samples(cld_mask,cld_opt_props_bnd,cld_opt_props_gpt)
   !         cld_opt_props_gpt%tau = cld_opt_props_gpt%tau * ratio
   !
-  function sampled_urand_gen_max_ran(urand,alpha) result(error_msg)
-    real(wp), dimension(:,:,:), intent(inout) :: urand     ! ngpt,nlay,ncol
+  function sampled_urand_gen_max_ran(alpha,urand,urand_aux) result(error_msg)
     real(wp), dimension(:,:),   intent(in   ) :: alpha     ! ncol,nlay-1
+    real(wp), dimension(:,:,:), intent(inout) :: urand     ! ngpt,nlay,ncol
+    real(wp), dimension(:,:,:), intent(in   ) :: urand_aux ! ngpt,nlay,ncol
     character(len=128)                        :: error_msg
     ! ------------------------
     integer :: ncol, nlay, ngpt, icol, ilay
     ! ------------------------
     !
     ! Error checking
-    ! We could also check urand in [0,1) but that would be computationally heavy
+    ! Could also check urand[_aux] in [0,1) but that would be computationally heavy
     !
     error_msg = ""
     ngpt = size(urand, 1)
     nlay = size(urand, 2)
     ncol = size(urand, 3)
+    if (any(shape(urand_aux) /= [ngpt,nlay,ncol])) then
+      error_msg = "sampled_urand_gen_max_ran: shapes of urand and urand_aux are not idendical"
+      return
+    end if
     if(any([size(alpha,1),size(alpha,2)] /= [ncol,nlay-1])) then
       error_msg = "sampled_urand_gen_max_ran: sizes of urand(ngpt,nlay,ncol) and alpha(ncol,nlay-1) are inconsistent"
       return
@@ -418,10 +423,16 @@ contains
     !   for each pair of layers, apply maximum inter-layer correlation with
     !   probability alpha and random correlation (no change in urand) otherwise.
     !
+    ! NOTE: urand_aux CANNOT be replaced by urand in the where mask. If that is
+    ! done, then the layer copy-down in the where body is conditioned on smaller
+    ! urand values, and so urand of layers become more and more un-random with
+    ! ilay, which is not what we want. E.g., in that case, mean(urand) grows
+    ! with each layer, rather than remaining at ~0.5.
+    !
     do icol = 1,ncol
       do ilay = 2,nlay
-        where (urand(1:ngpt,ilay,icol) < alpha(icol,ilay-1))
-          urand(1:ngpt,ilay,icol) = urand(1:ngpt,ilay-1,icol) 
+        where (urand_aux(:,ilay,icol) < alpha(icol,ilay-1))
+          urand(:,ilay,icol) = urand(:,ilay-1,icol) 
         end where
       end do
     end do
