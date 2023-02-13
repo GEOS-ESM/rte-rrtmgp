@@ -11,9 +11,9 @@ root of the RTE+RRTMGP installation.
 ## Gnu Fortran
 `FC: gfortran-8` or `gfortran-9` or `gfortran-10`
 ### Debugging flags
-`FCFLAGS: "-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -finit-real=nan -DUSE_CBOOL"`  
+`FCFLAGS: "-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -finit-real=nan -DRTE_USE_CBOOL"`  
 ### Even stricter debugging flags
-`FCFLAGS: "-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fbacktrace -finit-real=nan -DUSE_CBOOL -pedantic -g -Wall"`  
+`FCFLAGS: "-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fbacktrace -finit-real=nan -DRTE_USE_CBOOL -pedantic -g -Wall"`  
 
 ## Intel Fortran
 `FC: ifort`  
@@ -22,9 +22,15 @@ root of the RTE+RRTMGP installation.
 ### Optimization flags:  
 `FCFLAGS:"-m64 -O3 -g -traceback -heap-arrays -assume realloc_lhs -extend-source 132"`
 
-## PGI Fortran
-`FC: pgfortran` or `FC: nvfortran` (if using the Nvidia HPC SDK)
+## NVFortran
+`FC: nvfortran` (if using the Nvidia HPC SDK)
 ### Debugging flags
 `FCFLAGS: "-g -Minfo -Mbounds -Mchkptr -Mstandard -Kieee -Mchkstk -Mallocatable=03  -Mpreprocess"`
 ### Optimization flags:  
 `FCFLAGS: "-g -O3 -fast -Minfo -Mallocatable=03 -Mpreprocess"`
+
+## HPE CCE for GPU using OpenMP-acc: crayftn   -- requires at least CCE 14.0.0
+`FC: crayftn`
+### Debugging flags  (these appear to be insufficient during the link stage)
+`FCFLAGS: "-hnoacc -homp -O0"`
+
