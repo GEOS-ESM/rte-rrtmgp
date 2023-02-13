@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>How-to guides | RTE-RRTMGP</title>
+<meta name="generator" content="Jekyll v4.2.2" />
+<meta property="og:title" content="How-to guides" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="RTE+RRTMGP is a set of codes for computing radiative fluxes in planetary atmospheres. RRTMGP uses a k-distribution to provide an optical description (absorption and possibly Rayleigh optical depth) of the gaseous atmosphere, along with the relevant source functions, on a pre-determined spectral grid given temperatures, pressures, and gas concentration. RTE computes fluxes given spectrally-resolved optical descriptions and source functions." />
+<meta property="og:description" content="RTE+RRTMGP is a set of codes for computing radiative fluxes in planetary atmospheres. RRTMGP uses a k-distribution to provide an optical description (absorption and possibly Rayleigh optical depth) of the gaseous atmosphere, along with the relevant source functions, on a pre-determined spectral grid given temperatures, pressures, and gas concentration. RTE computes fluxes given spectrally-resolved optical descriptions and source functions." />
+<link rel="canonical" href="https://earth-system-radiation.github.io//rte-rrtmgp/how-tos/" />
+<meta property="og:url" content="https://earth-system-radiation.github.io//rte-rrtmgp/how-tos/" />
+<meta property="og:site_name" content="RTE-RRTMGP" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="How-to guides" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"RTE+RRTMGP is a set of codes for computing radiative fluxes in planetary atmospheres. RRTMGP uses a k-distribution to provide an optical description (absorption and possibly Rayleigh optical depth) of the gaseous atmosphere, along with the relevant source functions, on a pre-determined spectral grid given temperatures, pressures, and gas concentration. RTE computes fluxes given spectrally-resolved optical descriptions and source functions.","headline":"How-to guides","url":"https://earth-system-radiation.github.io//rte-rrtmgp/how-tos/"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/rte-rrtmgp/assets/main.css"><link type="application/atom+xml" rel="alternate" href="https://earth-system-radiation.github.io//rte-rrtmgp/feed.xml" title="RTE-RRTMGP" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/rte-rrtmgp/">RTE-RRTMGP</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/rte-rrtmgp/">RTE+RRTMGP documentation</a><a class="page-link" href="/rte-rrtmgp/reference/">Reference (technical documentation)</a><a class="page-link" href="/rte-rrtmgp/tutorials/">Tutorials</a><a class="page-link" href="/rte-rrtmgp/explanations/">Explanations</a><a class="page-link" href="/rte-rrtmgp/how-tos/">How-to guides</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">How-to guides</h1>
+  </header>
+
+  <div class="post-content">
+    <h1 id="how-to-guides-will-live-here">How-to guides will live here</h1>
+
+<h2 id="how-to-build-and-test-the-libraries-and-examples">How to: build and test the libraries and examples</h2>
+
+<h3 id="building-and-testing-using-gnu-make">Building and testing using (Gnu) make</h3>
+
+<ol>
+  <li>Set environment variables <code class="language-plaintext highlighter-rouge">FC</code> (the Fortran 2003 compiler) and <code class="language-plaintext highlighter-rouge">FCFLAGS</code> (compiler flags).
+Examples are provided in the <code class="language-plaintext highlighter-rouge">Compiler-flags.md</code> file.</li>
+  <li>Set environment variable <code class="language-plaintext highlighter-rouge">RRTMGP_ROOT</code> to the top-level RTE+RRTMGP directory.
+Set the variables <code class="language-plaintext highlighter-rouge">NCHOME</code> and <code class="language-plaintext highlighter-rouge">NFHOME</code> to the roots of the C and Fortran
+netCDF installations. (Building the libraries alone )</li>
+  <li>Set environment variable <code class="language-plaintext highlighter-rouge">RTE_KERNELS</code> to <code class="language-plaintext highlighter-rouge">openacc</code> if you want the OpenACC/OpenMP
+kernels rather than the default.</li>
+  <li><code class="language-plaintext highlighter-rouge">make libs</code> in the top-level directory will make the RTE and RRTMGP libraries
+and the regression tests in in <code class="language-plaintext highlighter-rouge">examples/</code> and <code class="language-plaintext highlighter-rouge">tests/</code>. Libraries and module
+files are in <code class="language-plaintext highlighter-rouge">build/</code>; examples and tests are in the subdirectory containing
+their source code.</li>
+  <li><code class="language-plaintext highlighter-rouge">make tests</code> runs the examples and regression tests.
+(A few files need to be downloaded for <code class="language-plaintext highlighter-rouge">examples/rfmip-clear-sky</code>. The default
+is to download with a Python script is shell script using <code class="language-plaintext highlighter-rouge">wget</code> is also available.)</li>
+  <li>Comparisons can be made with <code class="language-plaintext highlighter-rouge">make check</code> in the top level directory.
+Evaluating the results of the tests requires <code class="language-plaintext highlighter-rouge">Python</code> and the packages
+described in <code class="language-plaintext highlighter-rouge">environment.yml</code>. One approach is to use
+<code class="language-plaintext highlighter-rouge">conda env create -f environment.yml; conda activate rte_rrtmgp_test; make check</code></li>
+  <li><code class="language-plaintext highlighter-rouge">make</code> invoked without a target in the top level attempts all three steps.</li>
+</ol>
+
+<h3 id="building-and-testing-using-gnu-make-1">Building and testing using (Gnu) make</h3>
+
+<p>Sergey Kosukhin and his colleagues at the Max Planck Institute for Meteorology
+maintain the <code class="language-plaintext highlighter-rouge">autoconf</code> branch which adds Gnu <code class="language-plaintext highlighter-rouge">autotools</code> building to <code class="language-plaintext highlighter-rouge">main</code> branch.</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/rte-rrtmgp/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">RTE-RRTMGP</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">RTE-RRTMGP</li><li><a class="u-email" href="mailto:rrtmgp@aer.com">rrtmgp@aer.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/earth-system-radiation"><svg class="svg-icon"><use xlink:href="/rte-rrtmgp/assets/minima-social-icons.svg#github"></use></svg> <span class="username">earth-system-radiation</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>RTE+RRTMGP is a set of codes for computing radiative fluxes in planetary atmospheres. RRTMGP uses a k-distribution to provide an optical description (absorption and possibly Rayleigh optical depth) of the gaseous atmosphere, along with the relevant source functions, on a pre-determined spectral grid given temperatures, pressures, and gas concentration. RTE computes fluxes given spectrally-resolved optical descriptions and source functions.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
