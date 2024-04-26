@@ -12,9 +12,9 @@
 !
 !> ## Compute output quantities from spectrally-resolved flux profiles
 !>
-!>    This module contains an abstract class and a broadband implmentation that sums over all spectral points
+!>    This module contains an abstract class and a broadband implementation that sums over all spectral points
 !>    The abstract base class defines the routines that extenstions must implement: `reduce()` and `are_desired()`
-!>    The intent is for users to extend it as required, using mo_flxues_broadband as an example
+!>    The intent is for users to extend it as required, using mo_fluxes_broadband as an example
 !
 ! -------------------------------------------------------------------------------------------------
 module mo_fluxes
@@ -57,7 +57,7 @@ module mo_fluxes
 
   ! -----------------------------------------------------------------------------------------------
   !
-  ! Abstract interfaces: any implemntation has to provide routines with these interfaces
+  ! Abstract interfaces: any implementation has to provide routines with these interfaces
   !
   abstract interface
     ! -------------------
