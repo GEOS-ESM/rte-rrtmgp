@@ -399,8 +399,8 @@ contains
                                   logical(top_at_1, wl), n_quad_angs,         &
                                   secants, gauss_wts(1:n_quad_angs,n_quad_angs), &
                                   optical_props%tau,                 &
-                                  sources%lay_source,                &
-                                  sources%lev_source,                &
+                                  sources%lay_source, sources%lev_source_inc, &
+                                  sources%lev_source_dec,            &
                                   sfc_emis_gpt, sources%sfc_source,  &
                                   inc_flux_diffuse,                  &
                                   gpt_flux_up, gpt_flux_dn,          &
