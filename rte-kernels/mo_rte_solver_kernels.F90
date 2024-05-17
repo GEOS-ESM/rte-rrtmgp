@@ -93,6 +93,8 @@ contains
     real(wp), dimension(ncol,nlay) :: source_dn, source_up
     real(wp), dimension(ncol     ) :: sfc_albedo
 
+    real(wp), dimension(:,:,:), pointer :: lev_source_up, lev_source_dn ! Mapping increasing/decreasing indicies to up/down
+
     real(wp), parameter :: pi = acos(-1._wp)
 
     ! loc_fluxes hold a single g-point flux if fluxes are being integrated instead of returned
