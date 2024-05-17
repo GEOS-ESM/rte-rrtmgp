@@ -205,7 +205,7 @@ contains
     class(ty_optical_props),           intent(in   ) :: spectral_disc  !< derived type with spectral information
     logical,                           intent(in   ) :: top_at_1
     real(kind=wp), dimension(:,:,:), optional, &
-                                       intent(in   ) :: gpt_flux_dn_dir! Direct flux down
+                                       intent(in   ) :: gpt_flux_dn_dir ! Direct flux down
                                                                         ! [W/m2](ncol, nlay+1, ngpt)
     real(kind=wp), dimension(:,:,:), optional, &
                                        intent(in   ) :: gpt_flux_up_Jac ! Surface temperature flux Jacobian

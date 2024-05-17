@@ -28,9 +28,9 @@ module mo_fluxes_byband
   !   Data components are pointers so results can be written directly into memory
   !   reduce() function accepts spectral flux profiles
   type, extends(ty_fluxes_broadband) :: ty_fluxes_byband
-    real(wp), dimension(:,:,:), pointer :: bnd_flux_up => NULL(), & ! Band-by-band fluxes
-                                           bnd_flux_dn => NULL()    ! (ncol, nlev, nband)
-    real(wp), dimension(:,:,:), pointer :: bnd_flux_net => NULL()   ! Net (down - up)
+    real(wp), dimension(:,:,:), pointer :: bnd_flux_up => NULL(), &  ! Band-by-band fluxes
+                                           bnd_flux_dn => NULL()     ! (ncol, nlev, nband)
+    real(wp), dimension(:,:,:), pointer :: bnd_flux_net => NULL()    ! Net (down - up)
     real(wp), dimension(:,:,:), pointer :: bnd_flux_dn_dir => NULL() ! Direct flux down
     real(wp), dimension(:,:,:), pointer :: bnd_flux_up_Jac => NULL() ! Sfc Temp Jacobian
   contains
