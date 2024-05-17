@@ -374,8 +374,8 @@ contains
             ! two-stream calculation with scattering
             !
             call lw_solver_2stream(ncol, nlay, ngpt, logical(top_at_1, wl), &
-                                   optical_props%tau, optical_props%ssa, optical_props%g, &
-                                   sources%lay_source, sources%lev_source,                &
+                                   optical_props%tau, optical_props%ssa, optical_props%g,              &
+                                   sources%lay_source, sources%lev_source_inc, sources%lev_source_dec, &
                                    sfc_emis_gpt, sources%sfc_source,       &
                                    inc_flux_diffuse,                       &
                                    gpt_flux_up, gpt_flux_dn)
