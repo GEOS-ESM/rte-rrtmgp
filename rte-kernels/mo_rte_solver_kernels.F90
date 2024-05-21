@@ -229,7 +229,7 @@ contains
         gpt_flux_dn(:,:)  = pi * weight * gpt_flux_dn(:,:)
         gpt_flux_up(:,:)  = pi * weight * gpt_flux_up(:,:)
         if(do_Jacobians) &
-          gpt_flux_upJac(:,:) = 2._wp * pi * weight * gpt_flux_upJac(:,:)
+          gpt_flux_upJac(:,:) = pi * weight * gpt_flux_upJac(:,:)
       end if
     end do  ! g point loop
 
@@ -237,7 +237,7 @@ contains
       broadband_up(:,:) = pi * weight* broadband_up(:,:)
       broadband_dn(:,:) = pi * weight* broadband_dn(:,:)
       if(do_Jacobians) &
-        broadband_upJac(:,:) = 2._wp * pi * weight * broadband_upJac(:,:)
+        broadband_upJac(:,:) = pi * weight * broadband_upJac(:,:)
     end if
 
   end subroutine lw_solver_noscat_oneangle
