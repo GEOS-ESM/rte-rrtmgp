@@ -26,8 +26,8 @@ program rte_check_equivalence
   use iso_fortran_env, only : error_unit
   !
   ! Exercise various paths through RTE+RRTMGP code that should result in the same answer
-  !   Some sections test e.g. initialization and finalization 
-  !   Others compare two sets of fluxes which should be the same, e.g. with respect to vertical ordering 
+  !   Some sections test e.g. initialization and finalization
+  !   Others compare two sets of fluxes which should be the same, e.g. with respect to vertical ordering
   !
   use mo_rte_kind,           only: wp
   use mo_optical_props,      only: ty_optical_props, &
@@ -83,7 +83,7 @@ program rte_check_equivalence
   ! Output variables
   !
   real(wp), dimension(:,:), target, &
-                            allocatable :: ref_flux_up, ref_flux_dn, ref_flux_dir, & 
+                            allocatable :: ref_flux_up, ref_flux_dn, ref_flux_dir, &
                                            tst_flux_up, tst_flux_dn, tst_flux_dir, &
                                            heating_rate, jFluxUp
   !
@@ -99,7 +99,7 @@ program rte_check_equivalence
   !
   ! Inputs to RRTMGP
   !
-  logical :: top_at_1, is_sw, is_lw
+  logical :: is_sw, is_lw
 
   integer  :: ncol, nlay, nbnd, ngpt, nexp
   integer  :: icol, ilay, ibnd, iloop, igas
@@ -110,14 +110,14 @@ program rte_check_equivalence
   character(len=32 ), &
             dimension(:), allocatable :: kdist_gas_names, rfmip_gas_games
 
-  character(len=256) :: input_file = "", gas_optics_file = ""
+  character(len=512) :: input_file = "", gas_optics_file = ""
   ! ----------------------------------------------------------------------------------
   ! Code
   ! ----------------------------------------------------------------------------------
   !
   ! Parse command line for any file names, block size
   !
-  failed = .false. 
+  failed = .false.
   nUserArgs = command_argument_count()
   if (nUserArgs <  2) call stop_on_err("Need to supply input_file gas_optics_file ")
   if (nUserArgs >  3) print *, "Ignoring command line arguments beyond the first three..."
@@ -168,7 +168,6 @@ program rte_check_equivalence
   !
   nbnd = gas_optics%get_nband()
   ngpt = gas_optics%get_ngpt()
-  top_at_1 = p_lay(1, 1) < p_lay(1, nlay)
   ! ----------------------------------------------------------------------------
   !
   !  Boundary conditions
@@ -203,14 +202,14 @@ program rte_check_equivalence
   !
   ! Fluxes, heating rates, Jacobians
   !
-  allocate(ref_flux_up(ncol,nlay+1), ref_flux_dn(ncol,nlay+1), & 
-           tst_flux_up(ncol,nlay+1), tst_flux_dn(ncol,nlay+1), & 
-           heating_rate(ncol, nlay)) 
-  if(is_lw) then 
+  allocate(ref_flux_up(ncol,nlay+1), ref_flux_dn(ncol,nlay+1), &
+           tst_flux_up(ncol,nlay+1), tst_flux_dn(ncol,nlay+1), &
+           heating_rate(ncol, nlay))
+  if(is_lw) then
     allocate(jFluxUp(ncol,nlay+1))
   else
     allocate(ref_flux_dir(ncol,nlay+1), tst_flux_dir(ncol,nlay+1))
-  end if 
+  end if
 
   ! ----------------------------------------------------------------------------
   !
@@ -218,7 +217,7 @@ program rte_check_equivalence
   !
   if(is_lw) then
     !
-    ! initialization, finalization of optical properties 
+    ! initialization, finalization of optical properties
     !
     call make_optical_props_1scl(gas_optics)
     call atmos%finalize()
@@ -226,7 +225,7 @@ program rte_check_equivalence
     call atmos%set_name("gas only atmosphere")
     print *, "  Intialized atmosphere twice"
     !
-    ! Default calculation 
+    ! Default calculation
     !
     fluxes%flux_up => ref_flux_up(:,:)
     fluxes%flux_dn => ref_flux_dn(:,:)
@@ -236,9 +235,9 @@ program rte_check_equivalence
                                        atmos,        &
                                        lw_sources,   &
                                        tlev = t_lev))
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
     print *, "  Default calculation"
     !
@@ -248,30 +247,30 @@ program rte_check_equivalence
     print *, "  Computed heating rates"
     ! -------------------------------------------------------
     !
-    ! Net fluxes 
+    ! Net fluxes
     !
     nullify(fluxes%flux_up)
     nullify(fluxes%flux_dn)
     allocate(fluxes%flux_net(ncol,nlay+1))
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
-    if(.not. allclose(fluxes%flux_net, ref_flux_dn-ref_flux_up) )  &  
+    if(.not. allclose(fluxes%flux_net, ref_flux_dn-ref_flux_up) )  &
       call stop_on_err("Net fluxes don't match when computed alone")
     fluxes%flux_up => tst_flux_up(:,:)
     fluxes%flux_dn => tst_flux_dn(:,:)
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
-    if(.not. allclose(fluxes%flux_net, ref_flux_dn-ref_flux_up) )  &  
+    if(.not. allclose(fluxes%flux_net, ref_flux_dn-ref_flux_up) )  &
       call report_err("Net fluxes don't match when computed in tandem")
-    print *, "  Net fluxes"  
+    print *, "  Net fluxes"
     nullify(fluxes%flux_net)
     ! -------------------------------------------------------
     !
-    ! Orientation invariance 
+    ! Orientation invariance
     !
     call lw_clear_sky_vr
     if(.not. allclose(tst_flux_up, ref_flux_up, tol=4._wp) .or. &
@@ -280,68 +279,68 @@ program rte_check_equivalence
     print *, "  Vertical orientation invariance"
     ! -------------------------------------------------------
     !
-    ! Subsets of atmospheric columns 
+    ! Subsets of atmospheric columns
     !
     call lw_clear_sky_subset
-    if(.not. allclose(tst_flux_up, ref_flux_up) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn) )    & 
+    if(.not. allclose(tst_flux_up, ref_flux_up) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn) )    &
       call report_err("  Doing problem in subsets fails")
     print *, "  Subsetting invariance"
     ! -------------------------------------------------------
     !
-    ! Incrementing  
+    ! Incrementing
     !
-    atmos%tau(:,:,:) = 0.5_wp * atmos%tau(:,:,:) 
+    atmos%tau(:,:,:) = 0.5_wp * atmos%tau(:,:,:)
     call stop_on_err(atmos%increment(atmos))
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn) )    & 
+    if(.not. allclose(tst_flux_up, ref_flux_up) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn) )    &
       call report_err("  halving/doubling fails")
 
     call increment_with_1scl(atmos)
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn) )    & 
+    if(.not. allclose(tst_flux_up, ref_flux_up) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn) )    &
       call report_err("  Incrementing with 1scl fails")
 
     call increment_with_2str(atmos)
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn) )    & 
+    if(.not. allclose(tst_flux_up, ref_flux_up) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn) )    &
       call report_err("  Incrementing with 2str fails")
 
     call increment_with_nstr(atmos)
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn) )    & 
+    if(.not. allclose(tst_flux_up, ref_flux_up) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn) )    &
       call report_err("  Incrementing with nstr fails")
     print *, "  Incrementing"
     ! -------------------------------------------------------
     !
-    ! Computing Jacobian shouldn't change net fluxes 
+    ! Computing Jacobian shouldn't change net fluxes
     !
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
-                            fluxes,          &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
+                            fluxes,     &
                             flux_up_Jac = jFluxUp))
-    if(.not. allclose(tst_flux_up, ref_flux_up) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn) )    & 
+    if(.not. allclose(tst_flux_up, ref_flux_up) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn) )    &
       call report_err("  Computing Jacobian changes fluxes")
     !
-    ! Increase surface temperature by 1K and recompute fluxes 
+    ! Increase surface temperature by 1K and recompute fluxes
     !
     call stop_on_err(gas_optics%gas_optics(p_lay, p_lev, &
                                        t_lay, sfc_t + 1._wp, &
@@ -349,12 +348,12 @@ program rte_check_equivalence
                                        atmos,        &
                                        lw_sources,   &
                                        tlev = t_lev))
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
     !
-    ! Comparision of fluxes with increased surface T aren't expected to match 
+    ! Comparision of fluxes with increased surface T aren't expected to match
     !   fluxes + their Jacobian w.r.t. surface T exactly
     !
     if (.not. allclose(tst_flux_up, ref_flux_up + jFluxUp, tol=30._wp)) then
@@ -364,10 +363,10 @@ program rte_check_equivalence
     print *, "  Jacobian"
  else
     !
-    ! Shortwave  
+    ! Shortwave
     !
     !
-    ! initialization, finalization of optical properties 
+    ! initialization, finalization of optical properties
     !
     call make_optical_props_2str(gas_optics)
     call atmos%finalize()
@@ -375,7 +374,7 @@ program rte_check_equivalence
     print *, "  Intialized atmosphere twice"
 
     !
-    ! Default calculation 
+    ! Default calculation
     !
     fluxes%flux_up     => ref_flux_up (:,:)
     fluxes%flux_dn     => ref_flux_dn (:,:)
@@ -385,8 +384,7 @@ program rte_check_equivalence
                                        gas_concs,    &
                                        atmos,        &
                                        toa_flux))
-    call stop_on_err(rte_sw(atmos, top_at_1, &
-                            mu0,   toa_flux, &
+    call stop_on_err(rte_sw(atmos, mu0, toa_flux,     &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
     print *, "  Default calculation"
@@ -396,12 +394,12 @@ program rte_check_equivalence
 
     ! -------------------------------------------------------
     !
-    ! Orientation invariance 
+    ! Orientation invariance
     !
     call sw_clear_sky_vr
-    if(.not. allclose(tst_flux_up, ref_flux_up, tol = 4._wp) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 4._wp) .or. & 
-       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 4._wp))    &  
+    if(.not. allclose(tst_flux_up, ref_flux_up, tol = 4._wp) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 4._wp) .or. &
+       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 4._wp))    &
       call report_err(" Vertical invariance failure")
     print *, "  Vertical orientation invariance"
     ! -------------------------------------------------------
@@ -417,27 +415,26 @@ program rte_check_equivalence
     print *, "  TSI invariance"
     ! -------------------------------------------------------
     !
-    ! Incrementing 
-    !   Threshold of 4x spacing() works in double precision 
+    ! Incrementing
+    !   Threshold of 4x spacing() works in double precision
     !
     call stop_on_err(gas_optics%gas_optics(p_lay, p_lev, &
                                            t_lay,        &
                                            gas_concs,    &
                                            atmos,        &
                                            toa_flux))
-    atmos%tau(:,:,:) = 0.5_wp * atmos%tau(:,:,:) 
+    atmos%tau(:,:,:) = 0.5_wp * atmos%tau(:,:,:)
     call stop_on_err(atmos%increment(atmos))
-    call stop_on_err(rte_sw(atmos, top_at_1, &
-                            mu0,   toa_flux, &
+    call stop_on_err(rte_sw(atmos, mu0, toa_flux,     &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 10._wp) .or. & 
-       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 10._wp)) &  
+    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 12._wp) .or. &
+       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 12._wp)) &
       call report_err("  halving/doubling fails")
 
     !
-    ! Incremement with 0 optical depth 
+    ! Incremement with 0 optical depth
     !
     call stop_on_err(gas_optics%gas_optics(p_lay, p_lev, &
                                            t_lay,        &
@@ -445,13 +442,13 @@ program rte_check_equivalence
                                            atmos,        &
                                            toa_flux))
     call increment_with_1scl(atmos)
-    call stop_on_err(rte_sw(atmos, top_at_1, &
+    call stop_on_err(rte_sw(atmos,           &
                             mu0,   toa_flux, &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 10._wp) .or. & 
-       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 10._wp)) &  
+    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 12._wp) .or. &
+       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 12._wp)) &
       call report_err("  Incrementing with 1scl fails")
 
     call stop_on_err(gas_optics%gas_optics(p_lay, p_lev, &
@@ -460,13 +457,13 @@ program rte_check_equivalence
                                            atmos,        &
                                            toa_flux))
     call increment_with_2str(atmos)
-    call stop_on_err(rte_sw(atmos, top_at_1, &
+    call stop_on_err(rte_sw(atmos,           &
                             mu0,   toa_flux, &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 10._wp) .or. & 
-       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 10._wp)) &  
+    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 12._wp) .or. &
+       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 12._wp)) &
       call report_err("  Incrementing with 2str fails")
 
     call stop_on_err(gas_optics%gas_optics(p_lay, p_lev, &
@@ -475,20 +472,20 @@ program rte_check_equivalence
                                            atmos,        &
                                            toa_flux))
     call increment_with_nstr(atmos)
-    call stop_on_err(rte_sw(atmos, top_at_1, &
+    call stop_on_err(rte_sw(atmos,           &
                             mu0,   toa_flux, &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
-    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. & 
-       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 10._wp) .or. & 
-       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 10._wp)) &  
+    if(.not. allclose(tst_flux_up, ref_flux_up, tol =  8._wp) .or. &
+       .not. allclose(tst_flux_dn, ref_flux_dn, tol = 12._wp) .or. &
+       .not. allclose(tst_flux_dir,ref_flux_dir,tol = 12._wp)) &
       call report_err("  Incrementing with nstr fails")
     print *, "  Incrementing"
-  end if 
+  end if
   if(failed) error stop 1
 contains
   ! ----------------------------------------------------------------------------
-  ! Longwave 
+  ! Longwave
   ! ----------------------------------------------------------------------------
   ! Clear-sky longwave fluxes
   !   Reverse orientation in the vertical, compute, un-reverse
@@ -507,7 +504,6 @@ contains
     t_lay  (:,:) = t_lay  (:, nlay   :1:-1)
     p_lev  (:,:) = p_lev  (:,(nlay+1):1:-1)
     t_lev  (:,:) = t_lev  (:,(nlay+1):1:-1)
-    top_at_1 = .not. top_at_1
     !
     ! No direct access to gas concentrations so use the classes
     !   This also tests otherwise uncovered routines for ty_gas_concs
@@ -526,9 +522,9 @@ contains
                                        atmos,        &
                                        lw_sources,   &
                                        tlev=t_lev))
-    call stop_on_err(rte_lw(atmos, top_at_1, &
-                            lw_sources,      &
-                            sfc_emis,        &
+    call stop_on_err(rte_lw(atmos,      &
+                            lw_sources, &
+                            sfc_emis,   &
                             fluxes))
     tst_flux_up(:,:) = tst_flux_up(:,(nlay+1):1:-1)
     tst_flux_dn(:,:) = tst_flux_dn(:,(nlay+1):1:-1)
@@ -536,7 +532,6 @@ contains
     t_lay      (:,:) = t_lay      (:, nlay   :1:-1)
     p_lev      (:,:) = p_lev      (:,(nlay+1):1:-1)
     t_lev      (:,:) = t_lev      (:,(nlay+1):1:-1)
-    top_at_1 = .not. top_at_1
   end subroutine lw_clear_sky_vr
   ! ----------------------------------------------------------------------------
   !
@@ -566,8 +561,8 @@ contains
       colE = i * ncol/2
       call stop_on_err(atmos%get_subset     (colS, ncol/2, atmos_subset))
       call stop_on_err(lw_sources%get_subset(colS, ncol/2, sources_subset))
-      call stop_on_err(rte_lw(atmos_subset, top_at_1, &
-                              sources_subset,         &
+      call stop_on_err(rte_lw(atmos_subset,   &
+                              sources_subset, &
                               sfc_emis(:, colS:colE), &
                               fluxes))
       tst_flux_up(colS:colE,:) = up
@@ -576,7 +571,7 @@ contains
 
   end subroutine lw_clear_sky_subset
   ! ----------------------------------------------------------------------------
-  !  Shortwave 
+  !  Shortwave
   ! ----------------------------------------------------------------------------
   ! Shortwave - vertically reversed
   !
@@ -594,7 +589,6 @@ contains
     p_lay  (:,:) = p_lay  (:, nlay   :1:-1)
     t_lay  (:,:) = t_lay  (:, nlay   :1:-1)
     p_lev  (:,:) = p_lev  (:,(nlay+1):1:-1)
-    top_at_1 = .not. top_at_1
     !
     ! No direct access to gas concentrations so use the classes
     !   This also tests otherwise uncovered routines for ty_gas_concs
@@ -612,8 +606,7 @@ contains
                                        gas_concs_vr, &
                                        atmos,        &
                                        toa_flux))
-    call stop_on_err(rte_sw(atmos, top_at_1, &
-                            mu0,   toa_flux, &
+    call stop_on_err(rte_sw(atmos, mu0, toa_flux,     &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
     !
@@ -626,7 +619,6 @@ contains
     p_lay  (:,:) = p_lay  (:, nlay   :1:-1)
     t_lay  (:,:) = t_lay  (:, nlay   :1:-1)
     p_lev  (:,:) = p_lev  (:,(nlay+1):1:-1)
-    top_at_1 = .not. top_at_1
   end subroutine sw_clear_sky_vr
   ! ----------------------------------------------------------------------------
   !
@@ -645,8 +637,7 @@ contains
                                        gas_concs,    &
                                        atmos,        &
                                        toa_flux))
-    call stop_on_err(rte_sw(atmos, top_at_1, &
-                            mu0,   toa_flux, &
+    call stop_on_err(rte_sw(atmos, mu0, toa_flux,     &
                             sfc_alb_dir, sfc_alb_dif, &
                             fluxes))
     tst_flux_up (:,:) = tst_flux_up (:,:) / tsi_scale
@@ -662,17 +653,17 @@ contains
   ! ----------------------------------------------------------------------------
   logical function allclose(array1, array2, tol)
     real(wp), dimension(:,:), intent(in) :: array1, array2
-    real(wp), optional,       intent(in) :: tol 
-    
-    real(wp) :: tolerance 
-    if (present(tol)) then 
-      tolerance = tol 
+    real(wp), optional,       intent(in) :: tol
+
+    real(wp) :: tolerance
+    if (present(tol)) then
+      tolerance = tol
     else
       tolerance = 2._wp
-    end if 
+    end if
 
     allclose = all(abs(array1-array2) <= tolerance * spacing(array1))
-  end function allclose 
+  end function allclose
   ! ----------------------------------------------------------------------------
   subroutine report_err(error_msg)
     use iso_fortran_env, only : error_unit

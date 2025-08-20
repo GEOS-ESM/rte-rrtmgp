@@ -48,7 +48,7 @@ module mo_rte_lw
   use mo_rte_kind,      only: wp, wl
   use mo_rte_config,    only: check_extents, check_values
   use mo_rte_util_array,only: zero_array
-  use mo_rte_util_array_validation, & 
+  use mo_rte_util_array_validation, &
                         only: any_vals_less_than, any_vals_outside, extents_are
   use mo_optical_props, only: ty_optical_props, &
                               ty_optical_props_arry, ty_optical_props_1scl, ty_optical_props_2str, ty_optical_props_nstr
@@ -70,15 +70,13 @@ contains
   ! Interface using only optical properties and source functions as inputs; fluxes as outputs.
   !
   ! --------------------------------------------------
-  function rte_lw(optical_props, top_at_1, &
-                  sources, sfc_emis,       &
-                  fluxes,                  &
+  function rte_lw(optical_props,     &
+                  sources, sfc_emis, &
+                  fluxes,            &
                   inc_flux, n_gauss_angles, use_2stream, &
                   lw_Ds) result(error_msg)
     class(ty_optical_props_arry), intent(in   ) :: optical_props
       !! Set of optical properties as one or more arrays
-    logical,                      intent(in   ) :: top_at_1
-      !! Is the top of the domain at index 1? (if not, ordering is bottom-to-top)
     type(ty_source_func_lw),      intent(in   ) :: sources
       !! Derived type with Planck source functions
     real(wp), dimension(:,:),     intent(in   ) :: sfc_emis
@@ -130,11 +128,11 @@ contains
     integer,  parameter :: max_gauss_pts = 4
     real(wp), parameter,                         &
       dimension(max_gauss_pts, max_gauss_pts) :: &
-        ! 
+        !
         ! Values provided are for mu = cos(theta); we require the inverse
         !
-        gauss_Ds  = 1._wp / & 
-                    RESHAPE([0.6096748751_wp, huge(1._wp)    , huge(1._wp)    , huge(1._wp),      &  
+        gauss_Ds  = 1._wp / &
+                    RESHAPE([0.6096748751_wp, huge(1._wp)    , huge(1._wp)    , huge(1._wp),      &
                              0.2509907356_wp, 0.7908473988_wp, huge(1._wp)    , huge(1._wp),      &
                              0.1024922169_wp, 0.4417960320_wp, 0.8633751621_wp, huge(1._wp),      &
                              0.0454586727_wp, 0.2322334416_wp, 0.5740198775_wp, 0.9030775973_wp], &
@@ -356,8 +354,8 @@ contains
             end do
           end if
           call lw_solver_noscat(ncol, nlay, ngpt,                 &
-                                logical(top_at_1, wl), n_quad_angs,         &
-                                secants, gauss_wts(1:n_quad_angs,n_quad_angs), &
+                                logical(optical_props%top_is_at_1(), wl), &
+                                n_quad_angs, secants, gauss_wts(1:n_quad_angs,n_quad_angs), &
                                 optical_props%tau,                 &
                                 sources%lay_source,                &
                                 sources%lev_source,                &
@@ -376,7 +374,8 @@ contains
             !
             ! two-stream calculation with scattering
             !
-            call lw_solver_2stream(ncol, nlay, ngpt, logical(top_at_1, wl), &
+            call lw_solver_2stream(ncol, nlay, ngpt,                         &
+                                   logical(optical_props%top_is_at_1(), wl), &
                                    optical_props%tau, optical_props%ssa, optical_props%g, &
                                    sources%lay_source, sources%lev_source,                &
                                    sfc_emis_gpt, sources%sfc_source,       &
@@ -399,7 +398,8 @@ contains
             ! Re-scaled solution to account for scattering
             !
             call lw_solver_noscat(ncol, nlay, ngpt,                 &
-                                  logical(top_at_1, wl), n_quad_angs,         &
+                                  logical(optical_props%top_is_at_1(), wl), &
+                                  n_quad_angs,                       &
                                   secants, gauss_wts(1:n_quad_angs,n_quad_angs), &
                                   optical_props%tau,                 &
                                   sources%lay_source,                &
@@ -441,7 +441,7 @@ contains
           !
           ! ...or reduce spectral fluxes to desired output quantities
           !
-          error_msg = fluxes%reduce(gpt_flux_up, gpt_flux_dn, optical_props, top_at_1, &
+          error_msg = fluxes%reduce(gpt_flux_up, gpt_flux_dn, optical_props, optical_props%top_is_at_1(), &
             gpt_flux_up_Jac = gpt_flux_up_Jac)
       end select
     end if ! no error message from validation

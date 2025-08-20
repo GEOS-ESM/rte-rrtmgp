@@ -21,7 +21,7 @@ module mo_compute_bc
   ! -------------------------------------------------------------------------------------------------
   use mo_rte_kind,           only: wp, wl
   use mo_rte_config,         only: check_extents
-  use mo_rte_util_array_validation, & 
+  use mo_rte_util_array_validation, &
                              only: extents_are
   use mo_source_functions,   only: ty_source_func_lw
   use mo_gas_concentrations, only: ty_gas_concs
@@ -166,7 +166,6 @@ contains
       ! Compute fluxes
       !
       error_msg = rte_lw(optical_props_1lay, &
-                         top_at_1,           &
                          lw_sources_1lay,    &
                          lower_bc, fluxes_1lev)
     else
@@ -191,8 +190,7 @@ contains
                                     optical_props_1lay,         &
                                     solar_src)
       error_msg = rte_sw(optical_props_1lay, &
-                         top_at_1, mu0,      &
-                         solar_src,          &
+                         mu0, solar_src,     &
                          lower_bc, lower_bc, fluxes_1lev)
     endif
   end function

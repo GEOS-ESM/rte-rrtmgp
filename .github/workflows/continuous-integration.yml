@@ -1,103 +1,54 @@
 name: Continuous Integration
+
 on:
   push:
     branches:
-    - main
-    - develop
+      - main
   pull_request:
-    branches-ignore:
-    - documentation
   workflow_dispatch:
 
 defaults:
   run:
-    # Enable Conda environment by using the login shell:
-    shell: bash -leo pipefail {0}
+    shell: bash -eo pipefail {0}
 
 jobs:
   CI:
-    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        fortran-compiler: [gfortran-10, gfortran-11, gfortran-12]
+        rte-kernels: [default, accel]
         fpmodel: [DP, SP]
+
     env:
-      # Core variables:
-      FC: ${{ matrix.fortran-compiler }}
-      FCFLAGS: "-ffree-line-length-none -m64 -std=f2008 -march=native -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan -g -DRTE_USE_CBOOL -DRTE_USE_${{ matrix.fpmodel }}"
-      # Make variables:
-      FCINCLUDE: -I/usr/include
-      RRTMGP_ROOT: ${{ github.workspace }}
-      RRTMGP_DATA: ${{ github.workspace }}/rrtmgp-data
-      RUN_CMD:
-      FAILURE_THRESHOLD: 7.e-4
+      FFLAGS: -std=f2008 -fbounds-check -fmodule-private -fimplicit-none -finit-real=nan
+      CMAKE_BUILD_PARALLEL_LEVEL: 8
+      VERBOSE:
+      CTEST_PARALLEL_LEVEL: 8
+      CTEST_OUTPUT_ON_FAILURE: 1
+    runs-on: ubuntu-24.04
     steps:
-    #
-    # Relax failure thresholds for single precision
-    #
-    - name: Relax failure threshold for single precision
-      if: matrix.fpmodel == 'SP'
-      run: echo "FAILURE_THRESHOLD=3.5e-1" >> $GITHUB_ENV
-    #
-    # Check out repository under $GITHUB_WORKSPACE
-    #
-    - name: Check out code
-      uses: actions/checkout@v4
-    #
-    # Check out data
-    #
-    - name: Check out data
-      uses: actions/checkout@v4
-      with:
-        repository: earth-system-radiation/rrtmgp-data
-        path: rrtmgp-data
-        ref: v1.8.1
-    #
-    # Synchronize the package index
-    #
-    - name: Synchronize the package index
-      run: sudo apt-get update
-    #
-    # Install NetCDF-Fortran (compatible with all compilers)
-    #
-    - name: Install NetCDF-Fortran
-      run: sudo apt-get install libnetcdff-dev
-    #
-    # Cache Conda packages
-    #
-    - name: Cache Conda packages
-      uses: actions/cache@v4
-      with:
-        path: ~/conda_pkgs_dir
-        key: conda-pkgs
-    #
-    # Set up Conda
-    #
-    - name: Set up Conda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        miniforge-version: latest
-        activate-environment: rte_rrtmgp_test
-        environment-file: environment-noplots.yml
-        python-version: 3.11
-        auto-activate-base: false
-        # Use the cache properly:
-        use-only-tar-bz2: true
-    #
-    # Build libraries, examples and tests
-    #
-    - name: Build libraries
-      run: |
-        $FC --version
-        make -j4 libs
-    #
-    # Run examples and tests
-    #
-    - name: Build and run examples and tests
-      run: make -j4 tests
-    #
-    # Compare the results
-    #
-    - name: Compare the results
-      run: make -j4 check
+      - name: Check out
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --assume-yes \
+            libnetcdff-dev \
+            python3-dask \
+            python3-h5netcdf \
+            python3-numpy \
+            python3-scipy \
+            python3-xarray
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+              -DCMAKE_BUILD_TYPE=RelWithDebugInfo \
+              -DRTE_ENABLE_SP="$(test '${{ matrix.fpmodel }}' = SP && echo ON || echo OFF)" \
+              -DKERNEL_MODE=${{ matrix.rte-kernels }} \
+              -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build
+      - name: Install
+        run: sudo cmake --install build

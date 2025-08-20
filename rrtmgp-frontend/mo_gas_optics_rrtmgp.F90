@@ -10,7 +10,7 @@
 !    BSD 3-clause license, see http://opensource.org/licenses/BSD-3-Clause
 ! -------------------------------------------------------------------------------------------------
 !
-!> ## Class implementing the RRTMGP correlated-_k_ distribution 
+!> ## Class implementing the RRTMGP correlated-_k_ distribution
 !>
 !> Implements a class for computing spectrally-resolved gas optical properties and source functions
 !>   given atmopsheric physical properties (profiles of temperature, pressure, and gas concentrations)
@@ -26,11 +26,11 @@ module mo_gas_optics_rrtmgp
   use mo_rte_kind,           only: wp, wl
   use mo_rte_config,         only: check_extents, check_values
   use mo_rte_util_array,     only: zero_array
-  use mo_rte_util_array_validation, & 
+  use mo_rte_util_array_validation, &
                              only: any_vals_less_than, any_vals_outside, extents_are
   use mo_optical_props,      only: ty_optical_props
   use mo_source_functions,   only: ty_source_func_lw
-  use mo_gas_optics_rrtmgp_kernels, & 
+  use mo_gas_optics_rrtmgp_kernels, &
                              only: interpolation, compute_tau_absorption, compute_tau_rayleigh, compute_Planck_source
   use mo_gas_optics_constants,   only: avogad, m_dry, m_h2o, grav
   use mo_gas_optics_util_string, only: lower_case, string_in_array, string_loc_in_array
@@ -238,7 +238,7 @@ contains
                               intent(inout) :: optical_props !! Optical properties
     class(ty_source_func_lw    ),  &
                               intent(inout) :: sources       !! Planck sources
-    character(len=128)                      :: error_msg     !! Empty if succssful 
+    character(len=128)                      :: error_msg     !! Empty if succssful
     ! Optional inputs
     real(wp), dimension(:,:),   intent(in   ), &
                            optional, target :: col_dry, &  !! Column dry amount; dim(ncol,nlay)
@@ -257,6 +257,10 @@ contains
     nlay  = size(play,dim=2)
     ngpt  = this%get_ngpt()
     nband = this%get_nband()
+    !
+    ! Vertical orientation
+    !
+    call optical_props%set_top_at_1(play(1,1) < play(1, nlay))
     !
     ! Gas optics
     !
@@ -307,32 +311,33 @@ contains
     ! present status of optional argument should be passed to source()
     !    but nvfortran (and PGI Fortran before it) do not do so
     !
-    if(present(tlev)) then   
+    if(present(tlev)) then
       error_msg = source(this,                               &
-                         ncol, nlay, nband, ngpt,            &
+                         ncol, nlay, nband, ngpt, optical_props%top_is_at_1(),  &
                          play, plev, tlay, tsfc,             &
                          jtemp, jpress, jeta, tropo, fmajor, &
                          sources,                            &
                          tlev)
       !$acc        exit data      delete(tlev)
       !$omp target exit data map(release:tlev)
-    else 
+    else
       error_msg = source(this,                               &
-                         ncol, nlay, nband, ngpt,            &
+                         ncol, nlay, nband, ngpt, optical_props%top_is_at_1(),  &
                          play, plev, tlay, tsfc,             &
                          jtemp, jpress, jeta, tropo, fmajor, &
                          sources)
 
-    end if 
+    end if
     !$acc        exit data      delete(tsfc)
     !$omp target exit data map(release:tsfc)
     !$acc        exit data      delete(jtemp, jpress, tropo, fmajor, jeta)
     !$omp target exit data map(release:jtemp, jpress, tropo, fmajor, jeta)
+
   end function gas_optics_int
   !------------------------------------------------------------------------------------------
   !
   !> Compute gas optical depth given temperature, pressure, and composition
-  !>    Top-of-atmosphere stellar insolation is also reported 
+  !>    Top-of-atmosphere stellar insolation is also reported
   !
   function gas_optics_ext(this,                         &
                           play, plev, tlay, gas_desc,   & ! mandatory inputs
@@ -346,7 +351,7 @@ contains
     type(ty_gas_concs),       intent(in   ) :: gas_desc  !! Gas volume mixing ratios
     ! output
     class(ty_optical_props_arry),  &
-                              intent(inout) :: optical_props 
+                              intent(inout) :: optical_props
     real(wp), dimension(:,:), intent(  out) :: toa_src     !! Incoming solar irradiance(ncol,ngpt)
     character(len=128)                      :: error_msg   !! Empty if successful
 
@@ -371,6 +376,10 @@ contains
     ngas  = this%get_ngas()
     nflav = get_nflav(this)
     !
+    ! Vertical orientation
+    !
+    call optical_props%set_top_at_1(play(1,1) < play(1, nlay))
+    !
     ! Gas optics
     !
     !$acc enter data create(jtemp, jpress, tropo, fmajor, jeta)
@@ -383,6 +392,7 @@ contains
                                  col_dry)
     !$acc exit data delete(jtemp, jpress, tropo, fmajor, jeta)
     !$omp target exit data map(release:jtemp, jpress, tropo, fmajor, jeta)
+
     if(error_msg  /= '') return
 
     ! ----------------------------------------------------------
@@ -765,7 +775,7 @@ contains
     real(wp),           intent(in) :: mg_index  !! facular brightening index (NRLSSI2 facular "Bremen" index)
     real(wp),           intent(in) :: sb_index  !! sunspot dimming index     (NRLSSI2 sunspot "SPOT67" index)
     real(wp), optional, intent(in) :: tsi       !! total solar irradiance
-    character(len=128)             :: error_msg !! Empty if successful 
+    character(len=128)             :: error_msg !! Empty if successful
     ! ----------------------------------------------------------
     integer :: igpt
     real(wp), parameter :: a_offset = 0.1495954_wp
@@ -798,10 +808,10 @@ contains
     !
     class(ty_gas_optics_rrtmgp), intent(inout) :: this
     real(wp),                    intent(in   ) :: tsi !! user-specified total solar irradiance;
-    character(len=128)                         :: error_msg !! Empty if successful 
+    character(len=128)                         :: error_msg !! Empty if successful
 
     real(wp) :: norm
-    integer  :: igpt, length 
+    integer  :: igpt, length
     ! ----------------------------------------------------------
     error_msg = ""
     if(tsi < 0._wp) then
@@ -833,7 +843,7 @@ contains
   ! Compute Planck source functions at layer centers and levels
   !
   function source(this,                               &
-                  ncol, nlay, nbnd, ngpt,             &
+                  ncol, nlay, nbnd, ngpt, top_at_1,   &
                   play, plev, tlay, tsfc,             &
                   jtemp, jpress, jeta, tropo, fmajor, &
                   sources,                            & ! Planck sources
@@ -842,6 +852,7 @@ contains
     ! inputs
     class(ty_gas_optics_rrtmgp),    intent(in ) :: this
     integer,                               intent(in   ) :: ncol, nlay, nbnd, ngpt
+    logical,                               intent(in   ) :: top_at_1
     real(wp), dimension(ncol,nlay),        intent(in   ) :: play   ! layer pressures [Pa, mb]
     real(wp), dimension(ncol,nlay+1),      intent(in   ) :: plev   ! level pressures [Pa, mb]
     real(wp), dimension(ncol,nlay),        intent(in   ) :: tlay   ! layer temperatures [K]
@@ -858,7 +869,6 @@ contains
                                       optional, target :: tlev          ! level temperatures [K]
     character(len=128)                                 :: error_msg
     ! ----------------------------------------------------------
-    logical(wl)                                  :: top_at_1
     integer                                      :: icol, ilay
     ! Variables for temperature at layer edges [K] (ncol, nlay+1)
     real(wp), dimension(   ncol,nlay+1), target  :: tlev_arr
@@ -870,7 +880,7 @@ contains
     !   Allocate small local array for tlev unconditionally
     !
     !$acc        data copyin(sources) copyout( sources%lay_source, sources%lev_source)     &
-    !$acc                             copyout( sources%sfc_source, sources%sfc_source_Jac) & 
+    !$acc                             copyout( sources%sfc_source, sources%sfc_source_Jac) &
     !$acc              create(tlev_arr)
     !$omp target data                 map(from:sources%lay_source, sources%lev_source)     &
     !$omp                             map(from:sources%sfc_source, sources%sfc_source_Jac) &
@@ -886,7 +896,7 @@ contains
       !   Interpolation and extrapolation at boundaries is weighted by pressure
       !
      !$acc                parallel loop gang vector
-     !$omp target teams distribute parallel do simd 
+     !$omp target teams distribute parallel do simd
       do icol = 1, ncol
          tlev_arr(icol,1)      = tlay(icol,1) &
                            + (plev(icol,1)-play(icol,1))*(tlay(icol,2)-tlay(icol,1))  &
@@ -895,7 +905,7 @@ contains
                                 + (plev(icol,nlay+1)-play(icol,nlay))*(tlay(icol,nlay)-tlay(icol,nlay-1))  &
                                                           / (play(icol,nlay)-play(icol,nlay-1))
       end do
-     !$acc                parallel loop gang vector collapse(2) 
+     !$acc                parallel loop gang vector collapse(2)
      !$omp target teams distribute parallel do simd collapse(2)
      do ilay = 2, nlay
         do icol = 1, ncol
@@ -910,18 +920,12 @@ contains
     ! Compute internal (Planck) source functions at layers and levels,
     !  which depend on mapping from spectral space that creates k-distribution.
 
-    !$acc kernels copyout(top_at_1)
-    !$omp target map(from:top_at_1)
-    top_at_1 = play(1,1) < play(1, nlay)
-    !$acc end kernels
-    !$omp end target
-
     call compute_Planck_source(ncol, nlay, nbnd, ngpt, &
                 get_nflav(this), this%get_neta(), this%get_npres(), this%get_ntemp(), this%get_nPlanckTemp(), &
-                tlay, tlev_wk, tsfc, merge(nlay, 1, top_at_1), &
-                fmajor, jeta, tropo, jtemp, jpress,                    &
+                tlay, tlev_wk, tsfc, merge(nlay, 1, logical(top_at_1, wl)), &
+                fmajor, jeta, tropo, jtemp, jpress,                         &
                 this%get_gpoint_bands(), this%get_band_lims_gpoint(), this%planck_frac, this%temp_ref_min,&
-                this%totplnk_delta, this%totplnk, this%gpoint_flavor,  &
+                this%totplnk_delta, this%totplnk, this%gpoint_flavor,       &
                 sources%sfc_source, sources%lay_source, sources%lev_source, &
                 sources%sfc_source_Jac)
     !$acc end        data
@@ -1473,7 +1477,7 @@ contains
   !
   pure function get_temp_min(this)
     class(ty_gas_optics_rrtmgp), intent(in) :: this
-    real(wp)                                :: get_temp_min !! minimum temperature for which the k-dsitribution is valid 
+    real(wp)                                :: get_temp_min !! minimum temperature for which the k-dsitribution is valid
 
     get_temp_min = this%temp_ref_min
   end function get_temp_min
@@ -1552,25 +1556,25 @@ contains
     ! input
     class(ty_gas_optics_rrtmgp),  intent(in   ) :: this
     class(ty_optical_props_arry), intent(in   ) :: optical_props  !! Optical properties
-    real(wp), dimension(:,:),     intent(  out) :: optimal_angles !! Secant of optical transport angle 
+    real(wp), dimension(:,:),     intent(  out) :: optimal_angles !! Secant of optical transport angle
     character(len=128)                          :: err_msg        !! Empty if successful
     !----------------------------
     integer  :: ncol, nlay, ngpt
     integer  :: icol, ilay, igpt, bnd
     real(wp) :: t, trans_total
 #if defined _CRAYFTN && _RELEASE_MAJOR == 14 && _RELEASE_MINOR == 0 && _RELEASE_PATCHLEVEL == 3
-# define CRAY_WORKAROUND 
-#endif 
-#ifdef CRAY_WORKAROUND 
-    integer, allocatable :: bands(:) 
-#else 
+# define CRAY_WORKAROUND
+#endif
+#ifdef CRAY_WORKAROUND
+    integer, allocatable :: bands(:)
+#else
     integer :: bands(optical_props%get_ngpt())
 #endif
     !----------------------------
     ncol = optical_props%get_ncol()
     nlay = optical_props%get_nlay()
     ngpt = optical_props%get_ngpt()
-#ifdef CRAY_WORKAROUND 
+#ifdef CRAY_WORKAROUND
     allocate( bands(ngpt) )  ! In order to work with CCE 14  (it is also better software)
 #endif
 
@@ -1996,7 +2000,7 @@ contains
   !--------------------------------------------------------------------------------------------------------------------
   !
   ! Utility function to combine optical depths from gas absorption and Rayleigh scattering
-  !   It may be more efficient to combine scattering and absorption optical depths in place 
+  !   It may be more efficient to combine scattering and absorption optical depths in place
   !   rather than storing and processing two large arrays
   !
   subroutine combine_abs_and_rayleigh(tau, tau_rayleigh, optical_props)

@@ -3,75 +3,52 @@ on:
   push:
     branches:
     - main
-    - documentation
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   Build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
     #
     # Checks-out repository under $GITHUB_WORKSPACE
     #
     - uses: actions/checkout@v4
     #
-    # Synchronize the package index
-    #
-    - name: Synchronize the package index
-      run: sudo apt-get update
-    #
     # Install dependencies
     #
     - name: Install dependencies
       run: |
+        sudo apt-get update
         sudo apt-get install graphviz
         sudo pip install 'markdown<3.4' ford
     #
-    # Install Ruby
-    #
-    - name: Install Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 3.1
-    #
-    # Install Jekyll
-    #
-    - name: Install Jekyll
-      run: |
-        cd doc/jekyll_site
-        sudo gem install bundler jekyll
-        bundle update
-    #
     # Build documentation
     #
-    - name: Build Documentation
+    - name: Build FORD files
+      id: build
       run: |
-        cd doc
-        ./build_documentation.sh -ci
+        cd docs
+        ford ford_templates/rrtmgp-fortran-interface.md
+        ford ford_templates/rrtmgp-kernels.md
+        ford ford_templates/rte-fortran-interface.md
+        ford ford_templates/rte-kernels.md
     #
-    # Upload documentation
+    # Deploy
     #
-    - name: Upload Documentation
-      uses: actions/upload-artifact@v4
-      with:
-        name: documentation
-        path: public/
-        if-no-files-found: error
-    #
-    # Check broken links
-    #
-    - name: Broken Link Check
-      if: ${{ github.ref == 'refs/heads/documentation'}}
-      uses: technote-space/broken-link-checker-action@v2
-      with:
-        TARGET: file://${{ github.workspace }}/doc/ford_site/pages/index.html
-        RECURSIVE: true
-        ASSIGNEES: ${{ github.actor }}
-    #
-    # Deploy documentation
-    #
-    - name: Deploy API Documentation
-      uses: JamesIves/github-pages-deploy-action@v4.6.1
-      if: ${{ github.event_name == 'push'  &&  github.ref == 'refs/heads/documentation' }}
+    - name: Deploy to Github Pages
+      uses: JamesIves/github-pages-deploy-action@v4.7.3
+      if: ${{ github.event_name == 'push'  &&  github.ref == 'refs/heads/main' }}
       with:
         branch: gh-pages
-        folder: public/
+        folder: docs/
+
+   #
+   # Deploy from workflow dispatch
+   #
+    - name: Deploy to Github Pages from workflow_dispatch
+      uses: JamesIves/github-pages-deploy-action@v4.7.3
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      with:
+        branch: gh-pages
+        folder: docs/
