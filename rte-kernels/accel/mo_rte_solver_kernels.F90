@@ -92,6 +92,7 @@ contains
     ! Local variables
     integer :: icol, ilay, ilev, igpt
     integer :: top_level, sfc_level
+    integer :: omp_debug_executed
     real(wp), dimension(ncol,nlay,ngpt) :: tau_loc, &  ! path length (tau/mu)
                                            trans       ! transmissivity  = exp(-tau)
     real(wp), dimension(ncol,nlay,ngpt) :: source_dn, source_up
@@ -126,12 +127,12 @@ contains
     !$acc        enter data create(   flux_dn,flux_up)
     !$omp target enter data map(alloc:flux_dn,flux_up)
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:129 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop    collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         !
         ! Transport is for intensity
         !   convert flux at top of domain to intensity assuming azimuthal isotropy
@@ -139,19 +140,21 @@ contains
         flux_dn(icol,top_level,igpt) = incident_flux(icol,igpt)/(pi * weight)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:132 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
     !$acc        data create(   An, Cn)  copyin(g)          if(do_rescaling)
     !$omp target data map(alloc:An, Cn)  map(to:g)          if(do_rescaling)
     !$acc        data copyin(sfc_srcJac) create(   gpt_Jac) if(do_Jacobians)
     !$omp target data map(to:sfc_srcJac) map(alloc:gpt_Jac) if(do_Jacobians)
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:146 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop no_create(An, Cn, gpt_Jac, g) collapse(3)
-    !$omp target teams distribute parallel do simd collapse(3)
+    !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           !
           ! The wb and scaleTau terms are independent of propagation
           !   angle D and could be pre-computed if several values of D are used
@@ -186,6 +189,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:152 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !
     ! Transport down
     !
@@ -193,12 +198,12 @@ contains
     !
     ! Surface reflection and emission
     !
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:192 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop    collapse(2) no_create(gpt_Jac, sfc_srcJac)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         !
         ! Surface albedo, surface source function
         !
@@ -208,6 +213,8 @@ contains
           gpt_Jac(icol,sfc_level,igpt) = sfc_srcJac(icol,          igpt)*         sfc_emis(icol,igpt)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:201 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !
     ! Transport up, or up and down again if using rescaling
     !
@@ -434,6 +441,7 @@ contains
    real(wp), dimension(ncol,nlay+1,ngpt), intent(  out) :: flux_up, flux_dn ! Fluxes [W/m2]
     ! ----------------------------------------------------------------------
     integer :: icol, igpt, top_level
+    integer :: omp_debug_executed
     real(wp), dimension(ncol,nlay  ,ngpt) :: Rdif, Tdif, gamma1, gamma2
     real(wp), dimension(ncol       ,ngpt) :: sfc_albedo
     real(wp), dimension(ncol,nlay  ,ngpt) :: source_dn, source_up
@@ -466,16 +474,18 @@ contains
                         gamma1, gamma2, Rdif, Tdif, tau, &
                         source_dn, source_up, source_sfc)
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:463 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop    collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         sfc_albedo(icol,          igpt) = 1._wp - sfc_emis(icol,igpt)
         flux_dn   (icol,top_level,igpt) = inc_flux(icol,igpt)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:480 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !
     ! Transport
     !
@@ -510,6 +520,7 @@ contains
     real(wp), dimension(ncol,nlay+1,ngpt), intent(out) :: flux_dir     ! Direct-beam flux, spectral [W/m2]
 
     integer :: icol, ilev, igpt
+    integer :: omp_debug_executed
     ! ------------------------------------
     ! ------------------------------------
     !$acc enter data copyin(tau, mu0) create(flux_dir)
@@ -524,33 +535,37 @@ contains
       !   radiation just passed through?
       ! layer index = level index - 1
       ! previous level is up (-1)
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:519 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           flux_dir(icol,    1,igpt) = inc_flux_dir(icol,   igpt) * mu0(icol, 1)
           do ilev = 2, nlay+1
             flux_dir(icol,ilev,igpt) = flux_dir(icol,ilev-1,igpt) * exp(-tau(icol,ilev,igpt)/mu0(icol, ilev-1))
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:538 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else
       ! layer index = level index
       ! previous level is up (+1)
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:532 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           flux_dir(icol,nlay+1,igpt) = inc_flux_dir(icol, igpt) * mu0(icol, nlay)
           do ilev = nlay, 1, -1
             flux_dir(icol,ilev,igpt) = flux_dir(icol,ilev+1,igpt) * exp(-tau(icol,ilev,igpt)/mu0(icol, ilev))
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:552 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
     !$acc exit data delete(tau, mu0) copyout(flux_dir)
     !$omp target exit data map(release:tau, mu0) map(from:flux_dir)
@@ -588,7 +603,7 @@ contains
     real(wp), dimension(ncol,nlay+1     ), intent(out) :: broadband_up, broadband_dn, broadband_dir
     ! -------------------------------------------
     integer  :: icol, ilay, igpt, top_level, top_layer
-    real(wp) :: bb_flux_s, bb_dir_s
+    integer  :: omp_debug_executed
     real(wp), dimension(ncol,nlay,ngpt) :: Rdif, Tdif
     real(wp), dimension(ncol,nlay,ngpt) :: source_up, source_dn
     real(wp), dimension(ncol     ,ngpt) :: source_srf
@@ -621,39 +636,45 @@ contains
     !$acc        data copyout(flux_up, flux_dn, flux_dir) if (.not. do_broadband)
     !$omp target data map(to: flux_up, flux_dn, flux_dir) if (.not. do_broadband)
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:612 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         gpt_flux_dir(icol, top_level, igpt)  = inc_flux_dir(icol,igpt) * mu0(icol, top_layer)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:642 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
     !
     ! ... and diffuse field, using 0 if no BC is provided
     !
     if(has_dif_bc) then
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:624 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc                         parallel loop    collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           gpt_flux_dn(icol, top_level, igpt)  = inc_flux_dif(icol,igpt)
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:656 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:632 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc                         parallel loop    collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           gpt_flux_dn(icol, top_level, igpt)  = 0._wp
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:666 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
     !
     ! Cell properties: transmittance and reflectance for diffuse radiation
@@ -770,38 +791,43 @@ contains
                                                                        ! Top level must contain incident flux boundary condition
     ! Local variables
     integer :: igpt, ilev, icol
+    integer :: omp_debug_executed
     ! ---------------------------------------------------
     ! ---------------------------------------------------
     if(top_at_1) then
       !
       ! Top of domain is index 1
       !
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:761 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc  parallel loop collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ilev = 2, nlay+1
             radn_dn(icol,ilev,igpt) = trans(icol,ilev-1,igpt)*radn_dn(icol,ilev-1,igpt) + source_dn(icol,ilev-1,igpt)
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:803 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else
       !
       ! Top of domain is index nlay+1
       !
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:774 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc  parallel loop collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ilev = nlay, 1, -1
             radn_dn(icol,ilev,igpt) = trans(icol,ilev  ,igpt)*radn_dn(icol,ilev+1,igpt) + source_dn(icol,ilev,igpt)
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:818 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
 
   end subroutine lw_transport_noscat_dn
@@ -818,18 +844,19 @@ contains
     real(wp), dimension(ncol,nlay+1,ngpt), intent(inout) :: radn_upJac    ! surface temperature Jacobian of Radiances [W/m2-str / K]
     ! Local variables
     integer :: igpt, ilev, icol
+    integer :: omp_debug_executed
     ! ---------------------------------------------------
     ! ---------------------------------------------------
     if(top_at_1) then
       !
       ! Top of domain is index 1
       !
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:805 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc  parallel loop collapse(2) no_create(radn_upJac)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ilev = nlay, 1, -1
             radn_up     (icol,ilev,igpt) = trans(icol,ilev,igpt)*radn_up   (icol,ilev+1,igpt) + source_up(icol,ilev,igpt)
           end do
@@ -840,17 +867,19 @@ contains
           end if
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:856 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
 
     else
       !
       ! Top of domain is index nlay+1
       !
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:824 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc  parallel loop collapse(2) no_create(radn_upJac)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ilev = 2, nlay+1
             radn_up     (icol,ilev,igpt) = trans(icol,ilev-1,igpt) * radn_up   (icol,ilev-1,igpt) +  source_up(icol,ilev-1,igpt)
           end do
@@ -861,6 +890,8 @@ contains
           end if
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:877 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
 
   end subroutine lw_transport_noscat_up
@@ -880,6 +911,7 @@ contains
 
     ! -----------------------
     integer  :: icol, ilay, igpt
+    integer  :: omp_debug_executed
 
     ! Variables used in Meador and Weaver
     real(wp) :: k
@@ -896,13 +928,13 @@ contains
     !$acc enter data create(gamma1, gamma2, Rdif, Tdif)
     !$omp target enter data map(alloc:gamma1, gamma2, Rdif, Tdif)
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:873 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
-    !$omp target teams distribute parallel do simd collapse(3)
+    !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           !
           ! Coefficients differ from SW implementation because the phase function is more isotropic
           !   Here we follow Fu et al. 1997, doi:10.1175/1520-0469(1997)054<2799:MSPITI>2.0.CO;2
@@ -938,6 +970,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:934 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !$acc exit data delete (tau, w0, g)
     !$omp target exit data map(release:tau, w0, g)
     !$acc exit data copyout(gamma1, gamma2, Rdif, Tdif)
@@ -968,6 +1002,10 @@ contains
     real(wp), dimension(ncol      , ngpt), intent(out) :: source_sfc      ! Source function for upward radation at surface
 
     integer             :: icol, ilay, igpt
+    integer  :: omp_debug_executed
+
+    ! Variables used in Meador and Weaver
+    real(wp) :: gamma1, gamma2, gamma3, gamma4, alpha1, alpha2
     real(wp)            :: Z, Zup_top, Zup_bottom, Zdn_top, Zdn_bottom
     real(wp)            :: lev_source_bot, lev_source_top
     ! ---------------------------------------------------------------
@@ -977,13 +1015,13 @@ contains
     !$acc enter data create(source_dn, source_up, source_sfc)
     !$omp target enter data map(alloc:source_dn, source_up, source_sfc)
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:952 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
-    !$omp target teams distribute parallel do simd collapse(3)
+    !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           if (tau(icol,ilay,igpt) > 1.0e-8_wp) then
             if(top_at_1) then
               lev_source_top = lev_source(icol,ilay  ,igpt)
@@ -1010,6 +1048,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:1020 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !$acc exit data delete(sfc_emis, sfc_src, lay_source, tau, gamma1, gamma2, rdif, tdif, lev_source)
     !$omp target exit data map(release:sfc_emis, sfc_src, lay_source, tau, gamma1, gamma2, rdif, tdif, lev_source)
     !$acc exit data copyout(source_dn, source_up, source_sfc)
@@ -1052,9 +1092,7 @@ contains
 
     ! -----------------------
     integer  :: icol, ilay, igpt
-
-    ! Variables used in Meador and Weaver
-    real(wp) :: gamma1, gamma2, gamma3, gamma4, alpha1, alpha2
+    integer  :: omp_debug_executed
 
 
     ! Ancillary variables
@@ -1065,12 +1103,12 @@ contains
     integer  :: lay_index, inc_index, trans_index
     real(wp) :: tau_s, w0_s, g_s, mu0_s
     ! ---------------------------------
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1038 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         do ilay = 1, nlay
           if(top_at_1) then
             lay_index   = ilay
@@ -1175,6 +1213,8 @@ contains
         source_sfc(icol,igpt) = flux_dn_dir(icol,trans_index,igpt)*sfc_albedo(icol,igpt)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:1109 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine sw_dif_and_source
 ! ---------------------------------------------------------------
 !
@@ -1200,8 +1240,7 @@ contains
     real(wp), dimension(ncol,nlay+1,ngpt), intent(inout) :: flux_dn
     ! ------------------
     integer :: icol, ilev, igpt
-
-    ! These arrays could be private per thread in OpenACC, with 1 dimension of size nlay (or nlay+1)
+    integer :: omp_debug_executed, with 1 dimension of size nlay (or nlay+1)
     ! However, current PGI (19.4) has a bug preventing it from properly handling such private arrays.
     ! So we explicitly create the temporary arrays of size nlay(+1) per each of the ncol*ngpt elements
     !
@@ -1224,12 +1263,12 @@ contains
     !$omp target enter data map(alloc:flux_up, albedo, src, denom)
 
     if(top_at_1) then
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1195 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ilev = nlay + 1
           ! Albedo of lowest level is the surface albedo...
           albedo(icol,ilev,igpt)  = albedo_sfc(icol,igpt)
@@ -1271,15 +1310,17 @@ contains
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:1269 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
 
     else
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1243 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ilev = 1
           ! Albedo of lowest level is the surface albedo...
           albedo(icol,ilev,igpt)  = albedo_sfc(icol,igpt)
@@ -1322,6 +1363,8 @@ contains
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:1320 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
     !$acc exit data delete(albedo_sfc, rdif, tdif, src_dn, src_up, src_sfc, albedo, src, denom)
     !$omp target exit data map(release:albedo_sfc, rdif, tdif, src_dn, src_up, src_sfc, albedo, src, denom)
@@ -1354,6 +1397,7 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
     ! ---------------------------------------------------
     ! Local variables
     integer :: ilev, icol, igpt
+    integer :: omp_debug_executed
     real(wp) :: adjustmentFactor
     ! ---------------------------------------------------
     if(top_at_1) then
@@ -1361,12 +1405,12 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
       ! Top of domain is index 1
       !
       ! Downward propagation
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1328 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc                         parallel loop    collapse(2) no_create(radn_up_Jac)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ! Upward propagation
           do ilev = nlay, 1, -1
             adjustmentFactor = Cn(icol,ilev,igpt) * &
@@ -1397,13 +1441,15 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
           enddo
         enddo
       enddo
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:1410 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1363 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc  parallel loop collapse(2) no_create(radn_up_Jac)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ! Upward propagation
           do ilev = 1, nlay
             adjustmentFactor = Cn(icol,ilev,igpt)*&
@@ -1434,6 +1480,8 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
           end do
         enddo
       enddo
+      !$ print *, "[OMP] mo_rte_solver_kernels.F90:1449 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
   end subroutine lw_transport_1rescl
   ! -------------------------------------------------------------------------------------------------
@@ -1447,14 +1495,15 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
   real(wp), dimension(ncol, nlev),       intent(out) :: broadband_flux
 
   integer  :: icol, ilev, igpt
+  integer  :: omp_debug_executed
   real(wp) :: scalar ! local scalar version
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1412 max_threads=", omp_get_max_threads()
-!$     flush(6)
+  omp_debug_executed = 0
   !$acc                         parallel loop gang vector collapse(2)
-  !$omp target teams distribute parallel do simd          collapse(2)
+  !$omp target teams distribute parallel do simd          collapse(2) reduction(+:omp_debug_executed)
   do ilev = 1, nlev
     do icol = 1, ncol
+      omp_debug_executed = omp_debug_executed + 1
 
       scalar = 0.0_wp
 
@@ -1465,6 +1514,8 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
       broadband_flux(icol, ilev) = factor * scalar
     end do
   end do
+  !$ print *, "[OMP] mo_rte_solver_kernels.F90:1503 executed", omp_debug_executed, "iterations"
+  !$ flush(6)
   end subroutine sum_broadband_factor
   ! -------------------------------------------------------------------------------------------------
   !
@@ -1476,18 +1527,21 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
     real(wp), dimension(ncol, nlev, ngpt), intent(inout) :: array
 
     integer  :: icol, ilev, igpt
+    integer  :: omp_debug_executed
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1438 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop gang vector collapse(3)
-    !$omp target teams distribute parallel do simd          collapse(3)
+    !$omp target teams distribute parallel do simd          collapse(3) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilev = 1, nlev
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           array(icol, ilev, igpt) = factor * array(icol, ilev, igpt)
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:1534 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine apply_factor_3D
   ! -------------------------------------------------------------------------------------------------
   !
@@ -1499,18 +1553,21 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
     real(wp), dimension(ncol, nlev, ngpt), intent(inout) :: array
 
     integer  :: icol, ilev, igpt
+    integer  :: omp_debug_executed
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1459 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop gang vector collapse(3)
-    !$omp target teams distribute parallel do simd          collapse(3)
+    !$omp target teams distribute parallel do simd          collapse(3) reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilev = 1, nlev
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           array(icol, ilev, igpt) = array(icol, ilev, igpt) + increment(icol, ilev, igpt)
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:1560 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine add_arrays_3D
   ! -------------------------------------------------------------------------------------------------
   subroutine add_arrays_2D(ncol, nlev, increment, array)
@@ -1519,16 +1576,19 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
     real(wp), dimension(ncol, nlev), intent(inout) :: array
 
     integer  :: icol, ilev
+    integer  :: omp_debug_executed
 
-!$     print *, "[OMP] mo_rte_solver_kernels.F90:1477 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop gang vector collapse(2)
-    !$omp target teams distribute parallel do simd          collapse(2)
+    !$omp target teams distribute parallel do simd          collapse(2) reduction(+:omp_debug_executed)
     do ilev = 1, nlev
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         array(icol, ilev) = array(icol, ilev) + increment(icol, ilev)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_solver_kernels.F90:1579 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine add_arrays_2D
   ! -------------------------------------------------------------------------------------------------
 end module mo_rte_solver_kernels

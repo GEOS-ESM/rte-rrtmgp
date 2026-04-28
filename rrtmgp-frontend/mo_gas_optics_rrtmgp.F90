@@ -364,6 +364,7 @@ contains
 
     integer :: ncol, nlay, ngpt, nband, ngas, nflav
     integer :: igpt, icol
+    integer :: omp_debug_executed
     ! ----------------------------------------------------------
     ncol  = size(play,dim=1)
     nlay  = size(play,dim=2)
@@ -398,19 +399,17 @@ contains
     end if
     if(error_msg  /= '') return
 
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:401 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do igpt = 1,ngpt
        do icol = 1,ncol
-!$       if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$         print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:401 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$         flush(6)
-!$       end if
+          omp_debug_executed = omp_debug_executed + 1
           toa_src(icol,igpt) = this%solar_source(igpt)
        end do
     end do
+    !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:404 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !$acc exit data copyout(toa_src)
     !$omp target exit data map(from:toa_src)
   end function gas_optics_ext
@@ -468,6 +467,7 @@ contains
     integer :: idx_h2o ! index of water vapor
     integer :: nminorlower, nminorklower,nminorupper, nminorkupper
     logical :: use_rayl
+    integer :: omp_debug_executed
     ! ----------------------------------------------------------
     !
     ! Error checking
@@ -593,34 +593,30 @@ contains
       !
       ! compute column gas amounts [molec/cm^2]
       !
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:590 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(2)
-      !$omp target teams distribute parallel do simd collapse(2)
+      !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
       do ilay = 1, nlay
         do icol = 1, ncol
-!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$          print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:590 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$          flush(6)
-!$        end if
+          omp_debug_executed = omp_debug_executed + 1
           col_gas(icol,ilay,0) = col_dry_wk(icol,ilay)
         end do
       end do
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:597 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:595 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(3)
-      !$omp target teams distribute parallel do simd collapse(3)
+      !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
       do igas = 1, ngas
         do ilay = 1, nlay
           do icol = 1, ncol
-!$          if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$            print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:597 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$            flush(6)
-!$          end if
+            omp_debug_executed = omp_debug_executed + 1
             col_gas(icol,ilay,igas) = vmr(icol,ilay,igas) * col_dry_wk(icol,ilay)
           end do
         end do
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:604 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
       !
       ! ---- calculate gas optical depths ----
       !
@@ -789,6 +785,7 @@ contains
     integer :: igpt
     real(wp), parameter :: a_offset = 0.1495954_wp
     real(wp), parameter :: b_offset = 0.00066696_wp
+    integer :: omp_debug_executed
     ! ----------------------------------------------------------
     error_msg = ""
     if(mg_index < 0._wp) error_msg = 'mg_index out of range'
@@ -797,19 +794,17 @@ contains
     !
     ! Calculate solar source function for provided facular and sunspot indices
     !
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:782 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop
-    !$omp target teams distribute parallel do simd
+    !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
     do igpt = 1, size(this%solar_source_quiet)
-!$    if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$      print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:782 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$      flush(6)
-!$    end if
+      omp_debug_executed = omp_debug_executed + 1
       this%solar_source(igpt) = this%solar_source_quiet(igpt) + &
                                 (mg_index - a_offset) * this%solar_source_facular(igpt) + &
                                 (sb_index - b_offset) * this%solar_source_sunspot(igpt)
     end do
+    !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:791 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !
     ! Scale solar source to input TSI value
     !
@@ -827,6 +822,7 @@ contains
 
     real(wp) :: norm
     integer  :: igpt, length
+    integer  :: omp_debug_executed
     ! ----------------------------------------------------------
     error_msg = ""
     if(tsi < 0._wp) then
@@ -837,21 +833,27 @@ contains
       !
       norm = 0._wp
       length = size(this%solar_source)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector reduction(+:norm)
-      !$omp target teams distribute parallel do simd reduction(+:norm)
+      !$omp target teams distribute parallel do simd reduction(+:norm) reduction(+:omp_debug_executed)
       do igpt = 1, length
+         omp_debug_executed = omp_debug_executed + 1
          norm = norm + this%solar_source(igpt)
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:825 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
 
       norm = 1._wp/norm
 
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:824 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector
-      !$omp target teams distribute parallel do simd
+      !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do igpt = 1, length
+         omp_debug_executed = omp_debug_executed + 1
          this%solar_source(igpt) = this%solar_source(igpt) * tsi * norm
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:835 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
 
   end function set_tsi
@@ -887,6 +889,7 @@ contains
     ! ----------------------------------------------------------
     logical(wl)                                  :: top_at_1
     integer                                      :: icol, ilay
+    integer                                      :: omp_debug_executed
     ! Variables for temperature at layer edges [K] (ncol, nlay+1)
     real(wp), dimension(   ncol,nlay+1), target  :: tlev_arr
     real(wp), dimension(:,:),            pointer :: tlev_wk
@@ -912,11 +915,11 @@ contains
       ! Interpolate temperature to levels if not provided
       !   Interpolation and extrapolation at boundaries is weighted by pressure
       !
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:889 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
      !$acc                parallel loop gang vector
-     !$omp target teams distribute parallel do simd
+     !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do icol = 1, ncol
+         omp_debug_executed = omp_debug_executed + 1
          tlev_arr(icol,1)      = tlay(icol,1) &
                            + (plev(icol,1)-play(icol,1))*(tlay(icol,2)-tlay(icol,1))  &
                                                           / (play(icol,2)-play(icol,1))
@@ -924,17 +927,21 @@ contains
                                 + (plev(icol,nlay+1)-play(icol,nlay))*(tlay(icol,nlay)-tlay(icol,nlay-1))  &
                                                           / (play(icol,nlay)-play(icol,nlay-1))
       end do
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:899 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:921 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
+      omp_debug_executed = 0
      !$acc                parallel loop gang vector collapse(2)
-     !$omp target teams distribute parallel do simd collapse(2)
+     !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
      do ilay = 2, nlay
         do icol = 1, ncol
+           omp_debug_executed = omp_debug_executed + 1
            tlev_arr(icol,ilay) = (play(icol,ilay-1)*tlay(icol,ilay-1)*(plev(icol,ilay  )-play(icol,ilay)) &
                                 +  play(icol,ilay  )*tlay(icol,ilay  )*(play(icol,ilay-1)-plev(icol,ilay))) /  &
                                   (plev(icol,ilay)*(play(icol,ilay-1) - play(icol,ilay)))
         end do
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:933 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
 
     !-------------------------------------------------------------------
@@ -1541,6 +1548,7 @@ contains
     real(wp):: delta_plev, m_air, fact
     integer :: ncol, nlev
     integer :: icol, ilev ! nlay = nlev-1
+    integer :: omp_debug_executed
     ! ------------------------------------------------
     ncol = size(plev, dim=1)
     nlev = size(plev, dim=2)
@@ -1548,31 +1556,33 @@ contains
     !$omp target data map(alloc:g0)
     if(present(latitude)) then
       ! A purely OpenACC implementation would probably compute g0 within the kernel below
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:1521 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop
-      !$omp target teams distribute parallel do simd
+      !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         g0(icol) = helmert1 - helmert2 * cos(2.0_wp * pi * latitude(icol) / 180.0_wp) ! acceleration due to gravity [m/s^2]
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:1562 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:1527 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop
-      !$omp target teams distribute parallel do simd
+      !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do icol = 1, ncol
-!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$        print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:1527 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$        flush(6)
-!$      end if
+        omp_debug_executed = omp_debug_executed + 1
         g0(icol) = grav
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:1570 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
 
+    omp_debug_executed = 0
     !$acc                parallel loop gang vector collapse(2) copyin(plev,vmr_h2o)  copyout(col_dry)
-    !$omp target teams distribute parallel do simd collapse(2) map(to:plev,vmr_h2o) map(from:col_dry)
+    !$omp target teams distribute parallel do simd collapse(2) map(to:plev,vmr_h2o) map(from:col_dry) reduction(+:omp_debug_executed)
     do ilev = 1, nlev-1
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         delta_plev = abs(plev(icol,ilev) - plev(icol,ilev+1))
         ! Get average mass of moist air per mole of moist air
         fact = 1._wp / (1.+vmr_h2o(icol,ilev))
@@ -1580,6 +1590,8 @@ contains
         col_dry(icol,ilev) = 10._wp * delta_plev * avogad * fact/(1000._wp*m_air*100._wp*g0(icol))
       end do
     end do
+    !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:1577 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !$acc end        data
     !$omp end target data
   end function get_col_dry
@@ -1597,6 +1609,7 @@ contains
     integer  :: ncol, nlay, ngpt
     integer  :: icol, ilay, igpt, bnd
     real(wp) :: t, trans_total
+    integer  :: omp_debug_executed
 #if defined _CRAYFTN && _RELEASE_MAJOR == 14 && _RELEASE_MINOR == 0 && _RELEASE_PATCHLEVEL == 3
 # define CRAY_WORKAROUND
 #endif
@@ -1626,10 +1639,12 @@ contains
     !
     ! column transmissivity
     !
+    omp_debug_executed = 0
     !$acc parallel loop gang vector collapse(2) copyin(bands, optical_props, optical_props%tau) copyout(optimal_angles)
-    !$omp target teams distribute parallel do simd collapse(2) map(to:bands, optical_props%tau) map(from:optimal_angles)
+    !$omp target teams distribute parallel do simd collapse(2) map(to:bands, optical_props%tau) map(from:optimal_angles) reduction(+:omp_debug_executed)
     do icol = 1, ncol
       do igpt = 1, ngpt
+        omp_debug_executed = omp_debug_executed + 1
         !
         ! Column transmissivity
         !
@@ -1646,6 +1661,8 @@ contains
                                     this%optimal_angle_fit(2,bands(igpt))
       end do
     end do
+    !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:1643 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end function compute_optimal_angles
   !--------------------------------------------------------------------------------------------------------------------
   !
@@ -2045,6 +2062,7 @@ contains
 
     integer :: icol, ilay, igpt, ncol, nlay, ngpt, nmom
     real(wp) :: t
+    integer :: omp_debug_executed
 
     ncol = size(tau, 1)
     nlay = size(tau, 2)
@@ -2054,17 +2072,13 @@ contains
       !
       ! Extinction optical depth
       !
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:2019 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(3) default(present)
-      !$omp target teams distribute parallel do simd collapse(3)
+      !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
-!$          if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$            print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:2036(2str) teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$            flush(6)
-!$          end if
+            omp_debug_executed = omp_debug_executed + 1
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2075,18 +2089,20 @@ contains
            end do
         end do
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:2078 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
       call zero_array(ncol, nlay, ngpt, optical_props%g)
     type is (ty_optical_props_nstr)
       !
       ! Extinction optical depth and single scattering albedo
       !
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:2056 max_threads=", omp_get_max_threads()
-!$     flush(6)
+      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(3) default(present)
-      !$omp target teams distribute parallel do simd collapse(3)
+      !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
+            omp_debug_executed = omp_debug_executed + 1
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2097,20 +2113,24 @@ contains
            end do
         end do
       end do
+      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:2101 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
       nmom = size(optical_props%p, 1)
       call zero_array(nmom, ncol, nlay, ngpt, optical_props%p)
       if(nmom >= 2) then
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:2074 max_threads=", omp_get_max_threads()
-!$     flush(6)
+        omp_debug_executed = 0
         !$acc parallel loop gang vector collapse(3) default(present)
-        !$omp target teams distribute parallel do simd collapse(3)
+        !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
         do igpt = 1, ngpt
           do ilay = 1, nlay
             do icol = 1, ncol
+              omp_debug_executed = omp_debug_executed + 1
               optical_props%p(2,icol,ilay,igpt) = 0.1_wp
             end do
           end do
         end do
+        !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:2120 executed", omp_debug_executed, "iterations"
+        !$ flush(6)
       end if
     end select
   end subroutine combine_abs_and_rayleigh

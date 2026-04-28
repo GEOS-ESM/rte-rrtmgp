@@ -31,18 +31,17 @@ contains
     real(wp), dimension(ni), intent(out) :: array
     ! -----------------------
     integer :: i
+    integer :: omp_debug_executed
     ! -----------------------
-!$     print *, "[OMP] mo_rte_util_array.F90:35 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop copyout(array)
-    !$omp target teams distribute parallel do simd map(from:array)
+    !$omp target teams distribute parallel do simd map(from:array) reduction(+:omp_debug_executed)
     do i = 1, ni
-!$    if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$      print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_1D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$      flush(6)
-!$    end if
+      omp_debug_executed = omp_debug_executed + 1
       array(i) = 0.0_wp
     end do
+!$ print *, "[OMP] mo_rte_util_array.F90:38 executed", omp_debug_executed, "iterations"
+!$ flush(6)
   end subroutine zero_array_1D
   ! ----------------------------------------------------------
   subroutine zero_array_2D(ni, nj, array) bind(C, name="zero_array_2D")
@@ -50,20 +49,19 @@ contains
     real(wp), dimension(ni, nj), intent(out) :: array
     ! -----------------------
     integer :: i,j
+    integer :: omp_debug_executed
     ! -----------------------
-!$     print *, "[OMP] mo_rte_util_array.F90:48 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(2) copyout(array)
-    !$omp target teams distribute parallel do simd collapse(2) map(from:array)
+    !$omp target teams distribute parallel do simd collapse(2) map(from:array) reduction(+:omp_debug_executed)
     do j = 1, nj
       do i = 1, ni
-!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$        print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_2D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$        flush(6)
-!$      end if
+        omp_debug_executed = omp_debug_executed + 1
         array(i,j) = 0.0_wp
       end do
     end do
+!$ print *, "[OMP] mo_rte_util_array.F90:53 executed", omp_debug_executed, "iterations"
+!$ flush(6)
   end subroutine zero_array_2D
   ! ----------------------------------------------------------
   subroutine zero_array_3D(ni, nj, nk, array) bind(C, name="zero_array_3D")
@@ -71,22 +69,21 @@ contains
     real(wp), dimension(ni, nj, nk), intent(out) :: array
     ! -----------------------
     integer :: i,j,k
+    integer :: omp_debug_executed
     ! -----------------------
-!$     print *, "[OMP] mo_rte_util_array.F90:63 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3) copyout(array)
-    !$omp target teams distribute parallel do simd collapse(3) map(from:array)
+    !$omp target teams distribute parallel do simd collapse(3) map(from:array) reduction(+:omp_debug_executed)
     do k = 1, nk
       do j = 1, nj
         do i = 1, ni
-!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$          print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_3D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$          flush(6)
-!$        end if
+          omp_debug_executed = omp_debug_executed + 1
           array(i,j,k) = 0.0_wp
         end do
       end do
     end do
+!$ print *, "[OMP] mo_rte_util_array.F90:70 executed", omp_debug_executed, "iterations"
+!$ flush(6)
   end subroutine zero_array_3D
   ! ----------------------------------------------------------
   subroutine zero_array_4D(ni, nj, nk, nl, array) bind(C, name="zero_array_4D")
@@ -94,23 +91,22 @@ contains
     real(wp), dimension(ni, nj, nk, nl), intent(out) :: array
     ! -----------------------
     integer :: i,j,k,l
+    integer :: omp_debug_executed
     ! -----------------------
-!$     print *, "[OMP] mo_rte_util_array.F90:80 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(4) copyout(array)
-    !$omp target teams distribute parallel do simd collapse(4) map(from:array)
+    !$omp target teams distribute parallel do simd collapse(4) map(from:array) reduction(+:omp_debug_executed)
     do l = 1, nl
       do k = 1, nk
         do j = 1, nj
           do i = 1, ni
-!$          if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$            print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_4D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$            flush(6)
-!$          end if
+            omp_debug_executed = omp_debug_executed + 1
             array(i,j,k,l) = 0.0_wp
           end do
         end do
       end do
     end do
+!$ print *, "[OMP] mo_rte_util_array.F90:89 executed", omp_debug_executed, "iterations"
+!$ flush(6)
   end subroutine zero_array_4D
 end module mo_rte_util_array

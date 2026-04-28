@@ -107,6 +107,7 @@ contains
     integer      :: ncol, nlay, ngpt, nband
     integer      :: icol, ilev, igpt,       imu
     integer      :: n_quad_angs
+    integer      :: omp_debug_executed
     logical(wl)  :: using_2stream, do_Jacobians, do_broadband
     real(wp), dimension(:,:),   allocatable   :: sfc_emis_gpt
     real(wp), dimension(:,:,:), allocatable   :: secants
@@ -336,39 +337,35 @@ contains
           !$acc        data create(   secants)
           !$omp target data map(alloc:secants)
           if (present(lw_Ds)) then
-!$     print *, "[OMP] mo_rte_lw.F90:337 max_threads=", omp_get_max_threads()
-!$     flush(6)
             !$acc                         parallel loop    collapse(2) copyin(lw_Ds)
-            !$omp target teams distribute parallel do simd collapse(2)
+            omp_debug_executed = 0
+            !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
             ! nmu is 1
             do igpt = 1, ngpt
               do icol = 1, ncol
-!$              if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$                print *, "[OMP-INSIDE] mo_rte_lw.F90:337 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$                flush(6)
-!$              end if
+                omp_debug_executed = omp_debug_executed + 1
                 secants(icol,igpt,1) = lw_Ds(icol,igpt)
               end do
             end do
+            !$ print *, "[OMP] mo_rte_lw.F90:337 executed", omp_debug_executed, "iterations"
+            !$ flush(6)
           else
             !
             !   Is there an alternative to making ncol x ngpt copies of each value?
             !
-!$     print *, "[OMP] mo_rte_lw.F90:349 max_threads=", omp_get_max_threads()
-!$     flush(6)
             !$acc                         parallel loop    collapse(3)
-            !$omp target teams distribute parallel do simd collapse(3)
+            omp_debug_executed = 0
+            !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
             do imu = 1, n_quad_angs
               do igpt = 1, ngpt
                 do icol = 1, ncol
-!$                if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$                  print *, "[OMP-INSIDE] mo_rte_lw.F90:349 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$                  flush(6)
-!$                end if
+                  omp_debug_executed = omp_debug_executed + 1
                   secants(icol,igpt,imu) = gauss_Ds(imu,n_quad_angs)
                 end do
               end do
             end do
+            !$ print *, "[OMP] mo_rte_lw.F90:349 executed", omp_debug_executed, "iterations"
+            !$ flush(6)
           end if
           call lw_solver_noscat(ncol, nlay, ngpt,                 &
                                 logical(top_at_1, wl), n_quad_angs,         &
@@ -401,21 +398,19 @@ contains
             allocate(secants(ncol, ngpt, n_quad_angs))
             !$acc        data create(   secants)
             !$omp target data map(alloc:secants)
-!$     print *, "[OMP] mo_rte_lw.F90:390 max_threads=", omp_get_max_threads()
-!$     flush(6)
             !$acc                         parallel loop    collapse(3)
-            !$omp target teams distribute parallel do simd collapse(3)
+            omp_debug_executed = 0
+            !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
             do imu = 1, n_quad_angs
               do igpt = 1, ngpt
                 do icol = 1, ncol
-!$                if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$                  print *, "[OMP-INSIDE] mo_rte_lw.F90:390 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$                  flush(6)
-!$                end if
+                  omp_debug_executed = omp_debug_executed + 1
                   secants(icol,igpt,imu) = gauss_Ds(imu,n_quad_angs)
                 end do
               end do
             end do
+            !$ print *, "[OMP] mo_rte_lw.F90:390 executed", omp_debug_executed, "iterations"
+            !$ flush(6)
             !
             ! Re-scaled solution to account for scattering
             !
@@ -450,19 +445,17 @@ contains
             !
             ! FIXME: Do we need the create/copyout here?
             !
-!$     print *, "[OMP] mo_rte_lw.F90:433 max_threads=", omp_get_max_threads()
-!$     flush(6)
             !$acc parallel loop    collapse(2) copyin(fluxes) copyout( fluxes%flux_net)
-            !$omp target teams distribute parallel do simd collapse(2) map(from:fluxes%flux_net)
+            omp_debug_executed = 0
+            !$omp target teams distribute parallel do simd collapse(2) map(from:fluxes%flux_net) reduction(+:omp_debug_executed)
             do ilev = 1, nlay+1
               do icol = 1, ncol
-!$              if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$                print *, "[OMP-INSIDE] mo_rte_lw.F90:433 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$                flush(6)
-!$              end if
+                omp_debug_executed = omp_debug_executed + 1
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
             end do
+            !$ print *, "[OMP] mo_rte_lw.F90:433 executed", omp_debug_executed, "iterations"
+            !$ flush(6)
           end if
         class default
           !
@@ -501,27 +494,26 @@ contains
     ! -------------
     integer :: ncol, nband, ngpt
     integer :: icol, iband, igpt
+    integer :: omp_debug_executed
     integer, dimension(2,ops%get_nband()) :: limits
 
     ncol  = size(arr_in, 2)
     nband = ops%get_nband()
     ngpt  = ops%get_ngpt()
     limits = ops%get_band_lims_gpoint()
-!$     print *, "[OMP] mo_rte_lw.F90:484 max_threads=", omp_get_max_threads()
-!$     flush(6)
     !$acc                         parallel loop    collapse(2) copyin(arr_in, limits)
-    !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
+    omp_debug_executed = 0
+    !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits) reduction(+:omp_debug_executed)
     do iband = 1, nband
       do icol = 1, ncol
-!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$        print *, "[OMP-INSIDE] mo_rte_lw.F90:484 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$        flush(6)
-!$      end if
         do igpt = limits(1, iband), limits(2, iband)
+          omp_debug_executed = omp_debug_executed + 1
           arr_out(icol, igpt) = arr_in(iband,icol)
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_lw.F90:484 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine expand_and_transpose
   !--------------------------------------------------------------------------------------------------------------------

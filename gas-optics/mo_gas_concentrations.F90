@@ -380,6 +380,7 @@ contains
     ! ---------------------
     real(wp), dimension(:,:), pointer :: p
     integer :: icol, ilay, igas
+    integer :: omp_debug_executed
     ! ---------------------
     error_msg = ''
 
@@ -404,16 +405,12 @@ contains
     !$acc data copyout (array) present(this, this%concs)
     !$omp target data map(from:array)
     if(size(this%concs(igas)%conc, 1) > 1) then      ! Concentration stored as 2D
-!$     print *, "[OMP] mo_gas_concentrations.F90:407 max_threads=", omp_get_max_threads()
-!$     flush(6)
       !$acc parallel loop collapse(2) default(none) present(p)
-      !$omp target teams distribute parallel do simd
+      omp_debug_executed = 0
+      !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do ilay = 1, size(array,2)
         do icol = 1, size(array,1)
-!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$          print *, "[OMP-INSIDE] mo_gas_concentrations.F90:2D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$          flush(6)
-!$        end if
+          omp_debug_executed = omp_debug_executed + 1
 #ifdef _CRAYFTN
            array(icol,ilay) = p(icol,ilay)
 #else
@@ -421,17 +418,15 @@ contains
 #endif
         end do
       end do
+      !$ print *, "[OMP] mo_gas_concentrations.F90:410 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else if(size(this%concs(igas)%conc, 2) > 1) then ! Concentration stored as 1D
-!$     print *, "[OMP] mo_gas_concentrations.F90:419 max_threads=", omp_get_max_threads()
-!$     flush(6)
       !$acc parallel loop collapse(2) default(none) present(p)
-      !$omp target teams distribute parallel do simd
+      omp_debug_executed = 0
+      !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do ilay = 1, size(array,2)
         do icol = 1, size(array,1)
-!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$          print *, "[OMP-INSIDE] mo_gas_concentrations.F90:1D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$          flush(6)
-!$        end if
+          omp_debug_executed = omp_debug_executed + 1
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,ilay)
 #else
@@ -439,17 +434,15 @@ contains
 #endif
         end do
       end do
+      !$ print *, "[OMP] mo_gas_concentrations.F90:424 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     else                                             ! Concentration stored as scalar
-!$     print *, "[OMP] mo_gas_concentrations.F90:431 max_threads=", omp_get_max_threads()
-!$     flush(6)
       !$acc parallel loop collapse(2) default(none) present(p)
-      !$omp target teams distribute parallel do simd
+      omp_debug_executed = 0
+      !$omp target teams distribute parallel do simd reduction(+:omp_debug_executed)
       do ilay = 1, size(array,2)
         do icol = 1, size(array,1)
-!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$          print *, "[OMP-INSIDE] mo_gas_concentrations.F90:scalar teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$          flush(6)
-!$        end if
+          omp_debug_executed = omp_debug_executed + 1
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,1)
 #else
@@ -457,6 +450,8 @@ contains
 #endif
         end do
       end do
+      !$ print *, "[OMP] mo_gas_concentrations.F90:438 executed", omp_debug_executed, "iterations"
+      !$ flush(6)
     end if
     !$acc end data
     !$omp end target data

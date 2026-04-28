@@ -39,6 +39,7 @@ contains
 
     integer  :: ncol, nlay, icol, ilay
     real(wp) :: sin_theta2
+    integer  :: omp_debug_executed
     ! ------------------------------------
     error_msg = ""
     ncol = size(alt,1)
@@ -64,14 +65,14 @@ contains
     end if
     if(len_trim(error_msg) /= 0) return
     ! ------------------------------------
-!$     print *, "[OMP] mo_zenith_angle_spherical_correction.F90:68 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc                         parallel loop    collapse(2) &
     !$acc copyin(ref_alt, ref_mu, alt) copyout(mu)
     !$omp target teams distribute parallel do simd collapse(2) &
-    !$omp map(to:ref_alt, ref_mu, alt) map(from:mu)
+    !$omp map(to:ref_alt, ref_mu, alt) map(from:mu) reduction(+:omp_debug_executed)
     do ilay=1, nlay
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         sin_theta2 = (1-ref_mu(icol)**2) * &
                      ((planet_radius + ref_alt(icol)) / &
                       (planet_radius + alt(icol,ilay)))**2
@@ -82,6 +83,8 @@ contains
         end if
       end do
     end do
+    !$ print *, "[OMP] mo_zenith_angle_spherical_correction.F90:72 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end function zenith_angle_with_height
   ! -------------------------------------------------------------------------------------------------
   !

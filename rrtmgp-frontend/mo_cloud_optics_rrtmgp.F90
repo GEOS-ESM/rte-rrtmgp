@@ -396,6 +396,7 @@ contains
     integer  :: icol, ilay, ibnd
     ! scalars for total tau, tau*ssa
     real(wp) :: tau, taussa
+    integer :: omp_debug_executed
     ! ----------------------------------------
     !
     ! Error checking
@@ -450,20 +451,18 @@ contains
     !
     ! Cloud masks; don't need value re values if there's no cloud
     !
-!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:453 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop gang vector default(present) collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do ilay = 1, nlay
       do icol = 1, ncol
-!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$        print *, "[OMP-INSIDE] mo_cloud_optics_rrtmgp.F90:453 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$        flush(6)
-!$      end if
+        omp_debug_executed = omp_debug_executed + 1
         liqmsk(icol,ilay) = clwp(icol,ilay) > 0._wp
         icemsk(icol,ilay) = ciwp(icol,ilay) > 0._wp
       end do
     end do
+    !$ print *, "[OMP] mo_cloud_optics_rrtmgp.F90:456 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
     !
     ! Particle size, liquid/ice water paths
@@ -532,36 +531,34 @@ contains
       !
       select type(optical_props)
       type is (ty_optical_props_1scl)
-!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:530 max_threads=", omp_get_max_threads()
-!$     flush(6)
+        omp_debug_executed = 0
         !$acc parallel loop gang vector default(present) collapse(3) &
         !$acc               copyin(optical_props) copyout(optical_props%tau)
         !$omp target teams distribute parallel do simd collapse(3) &
-        !$omp map(from:optical_props%tau)
+        !$omp map(from:optical_props%tau) reduction(+:omp_debug_executed)
 
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1,ncol
-!$            if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$              print *, "[OMP-INSIDE] mo_cloud_optics_rrtmgp.F90:545 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$              flush(6)
-!$            end if
+              omp_debug_executed = omp_debug_executed + 1
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
               optical_props%tau(icol,ilay,ibnd) = (ltau(icol,ilay,ibnd) - ltaussa(icol,ilay,ibnd)) + &
                                                   (itau(icol,ilay,ibnd) - itaussa(icol,ilay,ibnd))
             end do
           end do
         end do
+        !$ print *, "[OMP] mo_cloud_optics_rrtmgp.F90:535 executed", omp_debug_executed, "iterations"
+        !$ flush(6)
       type is (ty_optical_props_2str)
-!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:545 max_threads=", omp_get_max_threads()
-!$     flush(6)
+        omp_debug_executed = 0
         !$acc parallel loop gang vector default(present) collapse(3) &
         !$acc               copyin(optical_props) copyout(optical_props%tau, optical_props%ssa, optical_props%g)
         !$omp target teams distribute parallel do simd collapse(3) &
-        !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g)
+        !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g) reduction(+:omp_debug_executed)
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1,ncol
+              omp_debug_executed = omp_debug_executed + 1
               tau    = ltau   (icol,ilay,ibnd) + itau   (icol,ilay,ibnd)
               taussa = ltaussa(icol,ilay,ibnd) + itaussa(icol,ilay,ibnd)
               optical_props%g  (icol,ilay,ibnd) = (ltaussag(icol,ilay,ibnd) + itaussag(icol,ilay,ibnd)) / &
@@ -571,6 +568,8 @@ contains
             end do
           end do
         end do
+        !$ print *, "[OMP] mo_cloud_optics_rrtmgp.F90:552 executed", omp_debug_executed, "iterations"
+        !$ flush(6)
       type is (ty_optical_props_nstr)
         error_msg = "cloud optics: n-stream calculations not yet supported"
       end select
@@ -660,18 +659,15 @@ contains
     integer  :: index
     real(wp) :: fint
     real(wp) :: t, ts  ! tau, tau*ssa, tau*ssa*g
+    integer :: omp_debug_executed
     ! ---------------------------
-!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:657 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop gang vector default(present) collapse(3)
-    !$omp target teams distribute parallel do simd collapse(3)
+    !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
     do ibnd = 1, nbnd
       do ilay = 1,nlay
         do icol = 1, ncol
-!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$          print *, "[OMP-INSIDE] mo_cloud_optics_rrtmgp.F90:657 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$          flush(6)
-!$        end if
+          omp_debug_executed = omp_debug_executed + 1
           if(mask(icol,ilay)) then
             index = min(floor((re(icol,ilay) - offset)/step_size)+1, nsteps-1)
             fint = (re(icol,ilay) - offset)/step_size - (index-1)
@@ -692,6 +688,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_cloud_optics_rrtmgp.F90:659 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine compute_all_from_table
   !
   ! Pade functions
@@ -721,14 +719,15 @@ contains
     ! ---------------------------
     integer  :: icol, ilay, ibnd, irad
     real(wp) :: t, ts
+    integer :: omp_debug_executed
 
-!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:712 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop gang vector default(present) collapse(3)
-    !$omp target teams distribute parallel do simd collapse(3)
+    !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
     do ibnd = 1, nbnd
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           if(mask(icol,ilay)) then
             !
             ! Finds index into size regime table
@@ -759,6 +758,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_cloud_optics_rrtmgp.F90:727 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine compute_all_from_pade
   !---------------------------------------------------------------------------

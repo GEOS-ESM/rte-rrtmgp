@@ -267,6 +267,7 @@ contains
     real(wp) :: tau, taussa
     ! Scalars to work around OpenACC/OMP issues
     real(wp) :: minSize,  maxSize
+    integer :: omp_debug_executed
 
     ! ----------------------------------------
     !
@@ -330,15 +331,17 @@ contains
     !
     !$acc data           create(aeromsk)
     !$omp target data map(alloc:aeromsk) 
-!$     print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:333 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc              parallel loop default(present) collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do ilay = 1, nlay
       do icol = 1, ncol
+        omp_debug_executed = omp_debug_executed + 1
         aeromsk(icol,ilay) = aero_type(icol,ilay) > 0
       end do
     end do
+    !$ print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:336 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
     !
     ! Aerosol size, relative humidity
@@ -387,30 +390,32 @@ contains
       !
       select type(optical_props)
       type is (ty_optical_props_1scl)
-!$     print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:392 max_threads=", omp_get_max_threads()
-!$     flush(6)
+        omp_debug_executed = 0
         !$acc parallel loop gang vector default(present) collapse(3) &
         !$acc               copyin(optical_props) copyout(optical_props%tau)
         !$omp target teams distribute parallel do simd collapse(3) &
-        !$omp map(from:optical_props%tau)
+        !$omp map(from:optical_props%tau) reduction(+:omp_debug_executed)
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1, ncol
+              omp_debug_executed = omp_debug_executed + 1
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
               optical_props%tau(icol,ilay,ibnd) = (atau(icol,ilay,ibnd) - ataussa(icol,ilay,ibnd))
             end do
           end do
         end do
+        !$ print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:394 executed", omp_debug_executed, "iterations"
+        !$ flush(6)
       type is (ty_optical_props_2str)
-!$     print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:405 max_threads=", omp_get_max_threads()
-!$     flush(6)
+        omp_debug_executed = 0
         !$acc parallel loop gang vector default(present) collapse(3) &
         !$acc               copyin(optical_props) copyout(optical_props%tau, optical_props%ssa, optical_props%g)
         !$omp target teams distribute parallel do simd collapse(3) &
-        !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g)
+        !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g) reduction(+:omp_debug_executed)
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1, ncol
+              omp_debug_executed = omp_debug_executed + 1
               tau    = atau   (icol,ilay,ibnd)
               taussa = ataussa(icol,ilay,ibnd)
               optical_props%tau(icol,ilay,ibnd) = tau
@@ -420,6 +425,8 @@ contains
             end do
           end do
         end do
+        !$ print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:409 executed", omp_debug_executed, "iterations"
+        !$ flush(6)
       type is (ty_optical_props_nstr)
         error_msg = "aerosol optics: n-stream calculations not yet supported"
       end select
@@ -469,14 +476,15 @@ contains
     integer  :: itype, irh1, irh2
     real(wp) :: drh0, drh1, rdrh
     real(wp) :: t, ts, tsg  ! tau, tau*ssa, tau*ssa*g
+    integer :: omp_debug_executed
     ! ---------------------------
-!$     print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:470 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop gang vector default(present) collapse(3)
-    !$omp target teams distribute parallel do simd collapse(3)
+    !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
     do ibnd = 1, nbnd
       do ilay = 1,nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ! Sequential loop to find size bin
           do i=1,nbin 
              if (size(icol,ilay) .ge. merra_aero_bin_lims(1,i) .and. &
@@ -565,6 +573,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:484 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine compute_all_from_table
   !--------------------------------------------------------------------------------------------------------------------
   !

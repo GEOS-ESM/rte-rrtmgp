@@ -57,11 +57,11 @@ contains
 
     real(wp) :: wf
     integer  :: icol, ilay, igpt
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:66 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3) &
     !$acc&     copy(ssa(:ncol,:nlay,:ngpt),tau(:ncol,:nlay,:ngpt)) &
     !$acc&     copyin(f(:ncol,:nlay,:ngpt)) &
@@ -69,10 +69,12 @@ contains
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:ssa, tau) &
     !$omp& map(to:f) &
-    !$omp& map(tofrom:g)
+    !$omp& map(tofrom:g) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           if(tau(icol,ilay,igpt) > eps) then
             wf = ssa(icol,ilay,igpt) * f(icol,ilay,igpt)
             tau(icol,ilay,igpt) = (1._wp - wf) * tau(icol,ilay,igpt)
@@ -82,6 +84,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:66 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
   end subroutine delta_scale_2str_f_k
   ! ---------------------------------
   ! Delta-scale
@@ -94,18 +98,20 @@ contains
 
     real(wp) :: f, wf
     integer  :: icol, ilay, igpt
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:99 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3) &
     !$acc&     copy(tau(:ncol,:nlay,:ngpt),ssa(:ncol,:nlay,:ngpt),g(:ncol,:nlay,:ngpt))
     !$omp target teams distribute parallel do simd collapse(3) &
-    !$omp& map(tofrom:tau, ssa, g)
+    !$omp& map(tofrom:tau, ssa, g) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           if(tau(icol,ilay,igpt) > eps) then
             f  = g  (icol,ilay,igpt) * g  (icol,ilay,igpt)
             wf = ssa(icol,ilay,igpt) * f
@@ -116,6 +122,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:99 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine delta_scale_2str_k
   ! -------------------------------------------------------------------------------------------------
@@ -142,6 +150,7 @@ contains
     real(wp), dimension(ncol,nlay,ngpt), intent(in   ) :: tau2
 
     integer  :: icol, ilay, igpt
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
 
@@ -153,19 +162,22 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:152 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3) 
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
-    !$omp& map(tofrom:tau1)
+    !$omp& map(tofrom:tau1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:152 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -180,6 +192,7 @@ contains
     real(wp), dimension(ncol,nlay,ngpt), intent(in   ) :: tau2, ssa2
 
     integer  :: icol, ilay, igpt
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
 
@@ -191,21 +204,24 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:188 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
     !$omp& map(tofrom:tau1) &
-    !$omp& map(to:ssa2)
+    !$omp& map(to:ssa2) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + &
                                  tau2(icol,ilay,igpt) * (1._wp - ssa2(icol,ilay,igpt))
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:188 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -220,6 +236,7 @@ contains
     real(wp), dimension(ncol,nlay,ngpt), intent(in   ) :: tau2, ssa2
 
     integer  :: icol, ilay, igpt
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -230,21 +247,24 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:225 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
     !$omp& map(tofrom:tau1) &
-    !$omp& map(to:ssa2)
+    !$omp& map(to:ssa2) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + &
                                  tau2(icol,ilay,igpt) * (1._wp - ssa2(icol,ilay,igpt))
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:225 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -261,6 +281,7 @@ contains
 
     integer  :: icol, ilay, igpt
     real(wp) :: tau12
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -271,16 +292,17 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:264 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:tau2) &
-    !$omp& map(tofrom:tau1)
+    !$omp& map(tofrom:tau1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           if(tau12 > eps) then
             ssa1(icol,ilay,igpt) = tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) / tau12
@@ -290,6 +312,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:264 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -305,6 +329,7 @@ contains
 
     integer :: icol, ilay, igpt
     real(wp) :: tau12, tauscat12
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -315,17 +340,18 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, g2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:306 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:g2) &
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:ssa2, tau2) &
-    !$omp& map(tofrom:tau1, g1)
+    !$omp& map(tofrom:tau1, g1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ! t=tau1 + tau2
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           ! w=(tau1*ssa1 + tau2*ssa2) / t
@@ -342,6 +368,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:306 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -359,6 +387,7 @@ contains
 
     integer  :: icol, ilay, igpt
     real(wp) :: tau12, tauscat12
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -369,17 +398,18 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, p2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:358 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:p2) &
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:ssa2, tau2) &
-    !$omp& map(tofrom:tau1, g1)
+    !$omp& map(tofrom:tau1, g1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           ! t=tau1 + tau2
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           ! w=(tau1*ssa1 + tau2*ssa2) / t
@@ -396,6 +426,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:358 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -412,6 +444,7 @@ contains
 
     integer  :: icol, ilay, igpt
     real(wp) :: tau12
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -422,16 +455,17 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:409 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:tau2) &
-    !$omp& map(tofrom:tau1)
+    !$omp& map(tofrom:tau1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           if(tau12 > eps) then
             ssa1(icol,ilay,igpt) = tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) / tau12
@@ -441,6 +475,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:409 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -460,6 +496,7 @@ contains
     real(wp) :: tau12, tauscat12
     real(wp) :: temp_mom ! TK
     integer  :: imom  !TK
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -470,18 +507,19 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, g2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:455 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:p1, ssa1) &
     !$omp& map(to:ssa2) &
     !$omp& map(tofrom:tau1) &
     !$omp& map(to:g2) &
-    !$omp& map(to:tau2)
+    !$omp& map(to:tau2) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           tauscat12 = &
              tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) + &
@@ -503,6 +541,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:455 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -522,6 +562,7 @@ contains
 
     integer  :: icol, ilay, igpt, mom_lim
     real(wp) :: tau12, tauscat12
+    integer :: omp_debug_executed
     ! --------------
     ! --------------
     mom_lim = min(nmom1, nmom2)
@@ -533,17 +574,18 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, p2)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:516 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:p2) &
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:ssa2, tau2) &
-    !$omp& map(tofrom:tau1, p1)
+    !$omp& map(tofrom:tau1, p1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           tauscat12 = &
              tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) + &
@@ -562,6 +604,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:516 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -581,6 +625,7 @@ contains
     real(wp), dimension(ncol,nlay,nbnd), intent(in   ) :: tau2
     integer,  dimension(2,nbnd),         intent(in   ) :: gpt_lims ! Starting and ending gpoint for each band
     integer :: ibnd, igpt, icol, ilay
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -590,16 +635,17 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:571 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
     !$omp& map(tofrom:tau1) &
-    !$omp& map(to:gpt_lims)
+    !$omp& map(to:gpt_lims) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1 , nlay
         do icol = 1 , ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -608,6 +654,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:571 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -623,6 +671,7 @@ contains
     real(wp), dimension(ncol,nlay,nbnd), intent(in   ) :: tau2, ssa2
     integer,  dimension(2,nbnd),         intent(in   ) :: gpt_lims ! Starting and ending gpoint for each band
     integer :: ibnd, igpt, icol, ilay
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -632,16 +681,17 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:611 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2, ssa2) &
     !$omp& map(tofrom:tau1) &
-    !$omp& map(to:gpt_lims)
+    !$omp& map(to:gpt_lims) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1 , nlay
         do icol = 1 , ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd) * (1._wp - ssa2(icol,ilay,ibnd))
@@ -650,6 +700,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:611 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -665,6 +717,7 @@ contains
     real(wp), dimension(ncol,nlay,nbnd), intent(in   ) :: tau2, ssa2
     integer,  dimension(2,nbnd),         intent(in   ) :: gpt_lims ! Starting and ending gpoint for each band
     integer :: ibnd, igpt, icol, ilay
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -674,16 +727,17 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:651 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:gpt_lims, tau2) &
     !$omp& map(tofrom:tau1) &
-    !$omp& map(to:ssa2)
+    !$omp& map(to:ssa2) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1 , nlay
         do icol = 1 , ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd) * (1._wp - ssa2(icol,ilay,ibnd))
@@ -692,6 +746,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:651 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -710,6 +766,7 @@ contains
 
     integer  :: icol, ilay, igpt, ibnd
     real(wp) :: tau12
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -719,17 +776,18 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:694 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
     !$omp& map(to:tau2) &
     !$omp& map(tofrom:ssa1) &
-    !$omp& map(to:gpt_lims)
+    !$omp& map(to:gpt_lims) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -741,6 +799,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:694 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -757,6 +817,7 @@ contains
     integer,  dimension(2,nbnd),         intent(in   ) :: gpt_lims ! Starting and ending gpoint for each band
     integer  :: icol, ilay, igpt, ibnd
     real(wp) :: tau12, tauscat12
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -766,8 +827,7 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, g2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:739 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
@@ -775,10 +835,12 @@ contains
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:gpt_lims) &
     !$omp& map(tofrom:g1) &
-    !$omp& map(to:g2)
+    !$omp& map(to:g2) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               ! t=tau1 + tau2
@@ -797,6 +859,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:739 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -816,6 +880,7 @@ contains
 
     integer  :: icol, ilay, igpt, ibnd
     real(wp) :: tau12, tauscat12
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -825,18 +890,19 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, p2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:796 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
     !$omp& map(to:tau2, ssa2) &
     !$omp& map(tofrom:ssa1) &
     !$omp& map(to:p2, gpt_lims) &
-    !$omp& map(tofrom:g1)
+    !$omp& map(tofrom:g1) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               ! t=tau1 + tau2
@@ -855,6 +921,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:796 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -873,26 +941,20 @@ contains
 
     integer  :: icol, ilay, igpt, ibnd
     real(wp) :: tau12
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
-    ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
-    ! it as present (as present counter of tau2, having the same memory address) 
-    ! is not necessarily decrement yet, and copyout action is not carried out
-    ! (present_or_copyout semantic)
-    !$acc data copy(tau1, ssa1)
-    !$acc data copyin(tau2, gpt_lims)
-
-!$     print *, "[OMP] mo_optical_props_kernels.F90:851 max_threads=", omp_get_max_threads()
-!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
     !$omp& map(to:tau2) &
     !$omp& map(tofrom:ssa1) &
-    !$omp& map(to:gpt_lims)
+    !$omp& map(to:gpt_lims) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -904,6 +966,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:851 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -925,6 +989,7 @@ contains
     real(wp) :: tau12, tauscat12
     real(wp) :: temp_mom ! TK
     integer  :: imom  !TK
+    integer :: omp_debug_executed
 
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
     ! in separate steps. Otherwise, at the time of copyout of tau1 runtime may see
@@ -934,18 +999,19 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, g2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:901 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
     !$omp& map(to:ssa2) &
     !$omp& map(tofrom:ssa1, p1) &
     !$omp& map(to:tau2) &
-    !$omp& map(to:gpt_lims, g2)
+    !$omp& map(to:gpt_lims, g2) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -969,6 +1035,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:901 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -990,6 +1058,7 @@ contains
 
     integer  :: icol, ilay, igpt, ibnd, mom_lim
     real(wp) :: tau12, tauscat12
+    integer :: omp_debug_executed
 
     mom_lim = min(nmom1, nmom2)
     ! tau1 and tau2 might be the same array, thus we need to perform copy and copyin
@@ -1000,8 +1069,7 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, p2, gpt_lims)
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:965 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:p2) &
@@ -1010,10 +1078,12 @@ contains
     !$omp& map(tofrom:tau1) &
     !$omp& map(to:tau2) &
     !$omp& map(tofrom:p1) &
-    !$omp& map(to:gpt_lims)
+    !$omp& map(to:gpt_lims) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
+          omp_debug_executed = omp_debug_executed + 1
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -1034,6 +1104,8 @@ contains
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:965 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   !$acc end data
   !$acc end data
@@ -1052,22 +1124,26 @@ contains
     real(wp), dimension(colE-colS+1,&
                              nlay,ngpt), intent(out) :: array_out
     integer :: icol, ilay, igpt
+    integer :: omp_debug_executed
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:1018 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3) &
     !$acc&     copyout(array_out) &
     !$acc&     copyin(array_in)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(from:array_out) &
-    !$omp& map(to:array_in)
+    !$omp& map(to:array_in) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = colS, colE
+          omp_debug_executed = omp_debug_executed + 1
           array_out(icol-colS+1, ilay, igpt) = array_in(icol, ilay, igpt)
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:1018 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine extract_subset_dim1_3d
   ! ---------------------------------
@@ -1080,24 +1156,28 @@ contains
                                   nlay,ngpt), intent(out) :: array_out
 
     integer :: icol, ilay, igpt, imom
+    integer :: omp_debug_executed
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:1044 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(4) &
     !$acc&     copyout(array_out(:nmom,:cole-cols+1,:nlay,:ngpt)) &
     !$acc&     copyin(array_in(:nmom,cols:cole,:nlay,:ngpt))
     !$omp target teams distribute parallel do simd collapse(4) &
     !$omp& map(from:array_out) &
-    !$omp& map(to:array_in)
+    !$omp& map(to:array_in) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = colS, colE
           do imom = 1, nmom
+            omp_debug_executed = omp_debug_executed + 1
             array_out(imom, icol-colS+1, ilay, igpt) = array_in(imom, icol, ilay, igpt)
           end do
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:1044 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine extract_subset_dim2_4d
   ! ---------------------------------
@@ -1114,9 +1194,9 @@ contains
                              nlay,ngpt), intent(out) :: tau_out
 
     integer :: icol, ilay, igpt
+    integer :: omp_debug_executed
 
-!$     print *, "[OMP] mo_optical_props_kernels.F90:1077 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(3) &
     !$acc&     copyin(ssa_in(cols:cole,:nlay,:ngpt)) &
     !$acc&     copyout(tau_out(:cole-cols+1,:nlay,:ngpt)) &
@@ -1124,15 +1204,19 @@ contains
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:ssa_in) &
     !$omp& map(from:tau_out) &
-    !$omp& map(to:tau_in)
+    !$omp& map(to:tau_in) &
+    !$omp& reduction(+:omp_debug_executed)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = colS, colE
+          omp_debug_executed = omp_debug_executed + 1
           tau_out(icol-colS+1, ilay, igpt) = &
             tau_in(icol, ilay, igpt) * (1._wp - ssa_in(icol, ilay, igpt))
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_optical_props_kernels.F90:1077 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine extract_subset_absorption_tau
 end module mo_optical_props_kernels

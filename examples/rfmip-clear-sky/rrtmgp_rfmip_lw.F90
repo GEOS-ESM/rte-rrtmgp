@@ -93,6 +93,7 @@ program rrtmgp_rfmip_lw
   integer            :: nargs, ncol, nlay, nbnd, nexp, nblocks, block_size, forcing_index, physics_index, n_quad_angles = 1
   logical            :: top_at_1
   integer            :: b, icol, ibnd
+  integer            :: omp_debug_executed
   character(len=4)   :: block_size_char, forcing_index_char = '1', physics_index_char = '1'
 
   character(len=32 ), &
@@ -233,15 +234,17 @@ program rrtmgp_rfmip_lw
     ! Expand the spectrally-constant surface emissivity to a per-band emissivity for each column
     !   (This is partly to show how to keep work on GPUs using OpenACC)
     !
-!$     print *, "[OMP] rrtmgp_rfmip_lw.F90:237 max_threads=", omp_get_max_threads()
-!$     flush(6)
+    omp_debug_executed = 0
     !$acc parallel loop collapse(2) copyin(sfc_emis)
-    !$omp target teams distribute parallel do simd collapse(2) map(to:sfc_emis)
+    !$omp target teams distribute parallel do simd collapse(2) map(to:sfc_emis) reduction(+:omp_debug_executed)
     do icol = 1, block_size
       do ibnd = 1, nbnd
+        omp_debug_executed = omp_debug_executed + 1
         sfc_emis_spec(ibnd,icol) = sfc_emis(icol,b)
       end do
     end do
+    !$ print *, "[OMP] rrtmgp_rfmip_lw.F90:237 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
     !
     ! Compute the optical properties of the atmosphere and the Planck source functions
     !    from pressures, temperatures, and gas concentrations...

@@ -80,6 +80,7 @@ contains
     ! --------------------------------
     real(wp), dimension(size(mu0), atmos%get_nlay()) :: mu0_bylay
     integer :: i, j, ncol, nlay
+    integer :: omp_debug_executed
 
     ncol = size(mu0)
     nlay = atmos%get_nlay()
@@ -89,19 +90,17 @@ contains
     !$acc        data copyin(mu0)    create(mu0_bylay)
     !$omp target data map(to:mu0) map(alloc:mu0_bylay)
 
-!$     print *, "[OMP] mo_rte_sw.F90:90 max_threads=", omp_get_max_threads()
-!$     flush(6)
     !$acc                         parallel loop    collapse(2)
-    !$omp target teams distribute parallel do simd collapse(2)
+    omp_debug_executed = 0
+    !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
     do j = 1, nlay
       do i = 1, ncol
-!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$        print *, "[OMP-INSIDE] mo_rte_sw.F90:90 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$        flush(6)
-!$      end if
+        omp_debug_executed = omp_debug_executed + 1
         mu0_bylay(i,j) = mu0(i)
       end do
     end do
+    !$ print *, "[OMP] mo_rte_sw.F90:90 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
     error_msg = rte_sw_mu0_full(atmos, top_at_1, &
                     mu0_bylay, inc_flux,         &
@@ -140,6 +139,7 @@ contains
     !
     integer     :: ncol, nlay, ngpt, nband
     integer     :: icol, ilev
+    integer     :: omp_debug_executed
     logical(wl) :: has_dif_bc, do_broadband
 
     real(wp), dimension(:,:,:), pointer             :: gpt_flux_up, gpt_flux_dn, gpt_flux_dir
@@ -347,15 +347,17 @@ contains
         !
         type is (ty_fluxes_broadband)
           if(associated(fluxes%flux_net)) then
-!$     print *, "[OMP] mo_rte_sw.F90:340 max_threads=", omp_get_max_threads()
-!$     flush(6)
             !$acc                         parallel loop    collapse(2) copyin(fluxes) copyout(fluxes%flux_net)
-            !$omp target teams distribute parallel do simd collapse(2)
+            omp_debug_executed = 0
+            !$omp target teams distribute parallel do simd collapse(2) reduction(+:omp_debug_executed)
             do ilev = 1, nlay+1
               do icol = 1, ncol
+                omp_debug_executed = omp_debug_executed + 1
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
             end do
+            !$ print *, "[OMP] mo_rte_sw.F90:340 executed", omp_debug_executed, "iterations"
+            !$ flush(6)
           end if
         class default
           !
@@ -407,27 +409,26 @@ contains
     ! -------------
     integer :: ncol, nband, ngpt
     integer :: icol, iband, igpt
+    integer :: omp_debug_executed
     integer, dimension(2,ops%get_nband()) :: limits
 
     ncol  = size(arr_in, 2)
     nband = ops%get_nband()
     ngpt  = ops%get_ngpt()
     limits = ops%get_band_lims_gpoint()
-!$     print *, "[OMP] mo_rte_sw.F90:404 max_threads=", omp_get_max_threads()
-!$     flush(6)
     !$acc                         parallel loop    collapse(2) copyin(arr_in, limits)
-    !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
+    omp_debug_executed = 0
+    !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits) reduction(+:omp_debug_executed)
     do iband = 1, nband
       do icol = 1, ncol
-!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
-!$        print *, "[OMP-INSIDE] mo_rte_sw.F90:404 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
-!$        flush(6)
-!$      end if
         do igpt = limits(1, iband), limits(2, iband)
+          omp_debug_executed = omp_debug_executed + 1
           arr_out(icol, igpt) = arr_in(iband,icol)
         end do
       end do
     end do
+    !$ print *, "[OMP] mo_rte_sw.F90:404 executed", omp_debug_executed, "iterations"
+    !$ flush(6)
 
   end subroutine expand_and_transpose
 end module mo_rte_sw
