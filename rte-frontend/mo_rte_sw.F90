@@ -43,6 +43,7 @@ module mo_rte_sw
   use mo_fluxes,        only: ty_fluxes, ty_fluxes_broadband
   use mo_rte_solver_kernels, &
                         only: sw_solver_noscat, sw_solver_2stream
+  use omp_lib
   implicit none
   private
 
@@ -89,6 +90,8 @@ contains
     !$acc                         parallel loop    collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do j = 1, nlay
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_rte_sw.F90:90"
       do i = 1, ncol
         mu0_bylay(i,j) = mu0(i)
       end do
@@ -339,6 +342,8 @@ contains
             !$acc                         parallel loop    collapse(2) copyin(fluxes) copyout(fluxes%flux_net)
             !$omp target teams distribute parallel do simd collapse(2)
             do ilev = 1, nlay+1
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+                print *, "[OMP] mo_rte_sw.F90:340"
               do icol = 1, ncol
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
@@ -403,6 +408,8 @@ contains
     !$acc                         parallel loop    collapse(2) copyin(arr_in, limits)
     !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
     do iband = 1, nband
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_rte_sw.F90:404"
       do icol = 1, ncol
         do igpt = limits(1, iband), limits(2, iband)
           arr_out(icol, igpt) = arr_in(iband,icol)

@@ -38,6 +38,7 @@ module mo_aerosol_optics_rrtmgp_merra
                               ty_optical_props_1scl, &
                               ty_optical_props_2str, &
                               ty_optical_props_nstr
+  use omp_lib
   implicit none
 
   ! MERRA2/GOCART aerosol types
@@ -332,6 +333,8 @@ contains
     !$acc              parallel loop default(present) collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:333"
       do icol = 1, ncol
         aeromsk(icol,ilay) = aero_type(icol,ilay) > 0
       end do
@@ -389,6 +392,8 @@ contains
         !$omp target teams distribute parallel do simd collapse(3) &
         !$omp map(from:optical_props%tau)
         do ibnd = 1, nbnd
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:392"
           do ilay = 1, nlay
             do icol = 1, ncol
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
@@ -402,6 +407,8 @@ contains
         !$omp target teams distribute parallel do simd collapse(3) &
         !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g)
         do ibnd = 1, nbnd
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:405"
           do ilay = 1, nlay
             do icol = 1, ncol
               tau    = atau   (icol,ilay,ibnd)
@@ -466,6 +473,8 @@ contains
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:470"
       do ilay = 1,nlay
         do icol = 1, ncol
           ! Sequential loop to find size bin

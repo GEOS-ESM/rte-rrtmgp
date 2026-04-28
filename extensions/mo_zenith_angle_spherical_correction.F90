@@ -19,6 +19,7 @@ module mo_zenith_angle_spherical_correction
   use mo_rte_config,     only: check_extents, check_values
   use mo_rte_util_array_validation, & 
                          only: extents_are, any_vals_outside, any_vals_less_than
+  use omp_lib
   implicit none
   private
   public :: zenith_angle_with_height
@@ -68,6 +69,8 @@ contains
     !$omp target teams distribute parallel do simd collapse(2) &
     !$omp map(to:ref_alt, ref_mu, alt) map(from:mu)
     do ilay=1, nlay
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_zenith_angle_spherical_correction.F90:68"
       do icol = 1, ncol
         sin_theta2 = (1-ref_mu(icol)**2) * &
                      ((planet_radius + ref_alt(icol)) / &

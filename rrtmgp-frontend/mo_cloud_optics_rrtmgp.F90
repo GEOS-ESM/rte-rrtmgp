@@ -28,6 +28,7 @@ module mo_cloud_optics_rrtmgp
                               ty_optical_props_1scl, &
                               ty_optical_props_2str, &
                               ty_optical_props_nstr
+  use omp_lib
   implicit none
   interface pade_eval
     module procedure pade_eval_nbnd, pade_eval_1
@@ -452,6 +453,8 @@ contains
     !$acc parallel loop gang vector default(present) collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:453"
       do icol = 1, ncol
         liqmsk(icol,ilay) = clwp(icol,ilay) > 0._wp
         icemsk(icol,ilay) = ciwp(icol,ilay) > 0._wp
@@ -531,6 +534,8 @@ contains
         !$omp map(from:optical_props%tau)
 
         do ibnd = 1, nbnd
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_cloud_optics_rrtmgp.F90:530"
           do ilay = 1, nlay
             do icol = 1,ncol
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
@@ -545,6 +550,8 @@ contains
         !$omp target teams distribute parallel do simd collapse(3) &
         !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g)
         do ibnd = 1, nbnd
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_cloud_optics_rrtmgp.F90:545"
           do ilay = 1, nlay
             do icol = 1,ncol
               tau    = ltau   (icol,ilay,ibnd) + itau   (icol,ilay,ibnd)
@@ -649,6 +656,8 @@ contains
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:657"
       do ilay = 1,nlay
         do icol = 1, ncol
           if(mask(icol,ilay)) then
@@ -704,6 +713,8 @@ contains
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:712"
       do ilay = 1, nlay
         do icol = 1, ncol
           if(mask(icol,ilay)) then

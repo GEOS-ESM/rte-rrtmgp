@@ -81,6 +81,7 @@ program rrtmgp_rfmip_sw
   use mo_load_coefficients,  only: load_and_init
   use mo_rfmip_io,           only: read_size, read_and_block_pt, read_and_block_gases_ty, unblock_and_write, &
                                    read_and_block_sw_bc, determine_gas_names
+  use omp_lib
   implicit none
   ! --------------------------------------------------
   !
@@ -250,6 +251,8 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop collapse(2) copy(def_tsi) copyin(toa_flux)
     !$omp target teams distribute parallel do simd collapse(2) map(tofrom:def_tsi) map(to:toa_flux)
     do igpt = 1, ngpt
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:252"
       do icol = 1, block_size
         !$acc atomic update
         !$omp atomic update
@@ -268,6 +271,8 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop collapse(2) copyin(total_solar_irradiance, def_tsi) copy(toa_flux)
     !$omp target teams distribute parallel do simd collapse(2) map(to:total_solar_irradiance, def_tsi) map(tofrom:toa_flux)
     do igpt = 1, ngpt
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:270"
       do icol = 1, block_size
         toa_flux(icol,igpt) = toa_flux(icol,igpt) * total_solar_irradiance(icol,b)/def_tsi(icol)
       end do
@@ -278,6 +283,8 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop collapse(2) copyin(surface_albedo)
     !$omp target teams distribute parallel do simd collapse(2) map(to:surface_albedo)
     do icol = 1, block_size
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:280"
       do ibnd = 1, nbnd
         sfc_alb_spec(ibnd,icol) = surface_albedo(icol,b)
       end do
@@ -288,6 +295,8 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop copyin(solar_zenith_angle, usecol)
     !$omp target teams distribute parallel do simd map(to:solar_zenith_angle, usecol)
     do icol = 1, block_size
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:290"
       mu0(icol) = merge(cos(solar_zenith_angle(icol,b)*deg_to_rad), 1._wp, usecol(icol,b))
     end do
 

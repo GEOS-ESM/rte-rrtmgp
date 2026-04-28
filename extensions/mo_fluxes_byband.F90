@@ -22,6 +22,7 @@ module mo_fluxes_byband
                         only: extents_are
   use mo_fluxes,        only: ty_fluxes, ty_fluxes_broadband
   use mo_optical_props, only: ty_optical_props
+  use omp_lib
   implicit none
 
   ! Output from radiation calculations
@@ -186,6 +187,8 @@ contains
     !$acc parallel loop collapse(3) copyin(spectral_flux, band_lims) copyout(byband_flux)
     !$omp target teams distribute parallel do collapse(3) map(to:spectral_flux, band_lims) map(from:byband_flux)
     do ibnd = 1, nbnd
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_fluxes_byband.F90:187"
       do ilev = 1, nlev
         do icol = 1, ncol
           byband_flux(icol, ilev, ibnd) =  spectral_flux(icol, ilev, band_lims(1, ibnd))
@@ -212,6 +215,8 @@ contains
     !$acc parallel loop collapse(3) copyin(spectral_flux_dn, spectral_flux_up, band_lims) copyout(byband_flux_net)
     !$omp target teams distribute parallel do collapse(3) map(to:spectral_flux_dn, spectral_flux_up, band_lims) map(from:byband_flux_net)
     do ibnd = 1, nbnd
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_fluxes_byband.F90:213"
       do ilev = 1, nlev
         do icol = 1, ncol
           igpt = band_lims(1,ibnd)

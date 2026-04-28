@@ -60,6 +60,7 @@ module mo_rte_lw
                         only: ty_fluxes_bygpoint
   use mo_rte_solver_kernels, &
                         only: lw_solver_noscat, lw_solver_2stream
+  use omp_lib
   implicit none
   private
 
@@ -337,6 +338,8 @@ contains
             !$omp target teams distribute parallel do simd collapse(2)
             ! nmu is 1
             do igpt = 1, ngpt
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+                print *, "[OMP] mo_rte_lw.F90:337"
               do icol = 1, ncol
                 secants(icol,igpt,1) = lw_Ds(icol,igpt)
               end do
@@ -348,6 +351,8 @@ contains
             !$acc                         parallel loop    collapse(3)
             !$omp target teams distribute parallel do simd collapse(3)
             do imu = 1, n_quad_angs
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+                print *, "[OMP] mo_rte_lw.F90:349"
               do igpt = 1, ngpt
                 do icol = 1, ncol
                   secants(icol,igpt,imu) = gauss_Ds(imu,n_quad_angs)
@@ -389,6 +394,8 @@ contains
             !$acc                         parallel loop    collapse(3)
             !$omp target teams distribute parallel do simd collapse(3)
             do imu = 1, n_quad_angs
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+                print *, "[OMP] mo_rte_lw.F90:390"
               do igpt = 1, ngpt
                 do icol = 1, ncol
                   secants(icol,igpt,imu) = gauss_Ds(imu,n_quad_angs)
@@ -432,6 +439,8 @@ contains
             !$acc parallel loop    collapse(2) copyin(fluxes) copyout( fluxes%flux_net)
             !$omp target teams distribute parallel do simd collapse(2) map(from:fluxes%flux_net)
             do ilev = 1, nlay+1
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+                print *, "[OMP] mo_rte_lw.F90:433"
               do icol = 1, ncol
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
@@ -483,6 +492,8 @@ contains
     !$acc                         parallel loop    collapse(2) copyin(arr_in, limits)
     !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
     do iband = 1, nband
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_rte_lw.F90:484"
       do icol = 1, ncol
         do igpt = limits(1, iband), limits(2, iband)
           arr_out(icol, igpt) = arr_in(iband,icol)

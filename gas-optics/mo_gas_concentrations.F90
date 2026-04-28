@@ -40,6 +40,7 @@ module mo_gas_concentrations
   use mo_rte_config,         only: check_values
   use mo_rte_util_array_validation, & 
                              only: any_vals_outside
+  use omp_lib
   implicit none
   integer, parameter, private :: GAS_NOT_IN_LIST = -1
   private
@@ -406,6 +407,8 @@ contains
       !$acc parallel loop collapse(2) default(none) present(p)
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_gas_concentrations.F90:407"
         do icol = 1, size(array,1)
 #ifdef _CRAYFTN
            array(icol,ilay) = p(icol,ilay)
@@ -418,6 +421,8 @@ contains
       !$acc parallel loop collapse(2) default(none) present(p)
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_gas_concentrations.F90:419"
         do icol = 1, size(array,1)
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,ilay)
@@ -430,6 +435,8 @@ contains
       !$acc parallel loop collapse(2) default(none) present(p)
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_gas_concentrations.F90:431"
         do icol = 1, size(array,1)
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,1)

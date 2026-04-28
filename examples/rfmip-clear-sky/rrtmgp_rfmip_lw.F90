@@ -81,6 +81,7 @@ program rrtmgp_rfmip_lw
   use mo_load_coefficients,  only: load_and_init
   use mo_rfmip_io,           only: read_size, read_and_block_pt, read_and_block_gases_ty, unblock_and_write, &
                                    read_and_block_lw_bc, determine_gas_names
+  use omp_lib
   implicit none
   ! --------------------------------------------------
   !
@@ -235,6 +236,8 @@ program rrtmgp_rfmip_lw
     !$acc parallel loop collapse(2) copyin(sfc_emis)
     !$omp target teams distribute parallel do simd collapse(2) map(to:sfc_emis)
     do icol = 1, block_size
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_lw.F90:237"
       do ibnd = 1, nbnd
         sfc_emis_spec(ibnd,icol) = sfc_emis(icol,b)
       end do

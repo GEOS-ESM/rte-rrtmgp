@@ -18,6 +18,7 @@ program rte_rrtmgp_allsky
   use mo_load_aerosol_coefficients, &
                              only: load_aero_lutcoeff
   use mo_rte_config,         only: rte_config_checks
+  use omp_lib
   implicit none
   ! ----------------------------------------------------------------------------------
   ! Variables
@@ -490,6 +491,8 @@ contains
     !$acc                         parallel loop    collapse(2) 
     !$omp target teams distribute parallel do simd collapse(2) 
     do ilay = 1, nlay 
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_allsky.F90:491"
       do icol = 1, ncol 
         z = z_lay(ilay) 
         if (z > z_trop) then 
@@ -515,6 +518,8 @@ contains
     !$acc                         parallel loop    collapse(2) 
     !$omp target teams distribute parallel do simd collapse(2) 
     do ilay = 1, nlay+1
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_allsky.F90:516"
       do icol = 1, ncol 
         z = z_lev(ilay) 
         if (z > z_trop) then 
@@ -590,6 +595,8 @@ contains
     !$acc                         parallel loop    collapse(2) copyin(t_lay) copyout( lwp, iwp, rel, rei)
     !$omp target teams distribute parallel do simd collapse(2) map(to:t_lay) map(from:lwp, iwp, rel, rei)
     do ilay=1,nlay
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_allsky.F90:591"
       do icol=1,ncol
         cloud_mask(icol,ilay) = p_lay(icol,ilay) > 100._wp * 100._wp .and. &
                                 p_lay(icol,ilay) < 900._wp * 100._wp .and. &
@@ -660,6 +667,8 @@ contains
     !$acc                         parallel loop    collapse(2) copyin(p_lay) 
     !$omp target teams distribute parallel do simd collapse(2) map(to:p_lay) 
     do ilay=1,nlay
+      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_allsky.F90:661"
       do icol=1,ncol
         is_sulfate = (p_lay(icol,ilay) >  50._wp * 100._wp .and. & 
                       p_lay(icol,ilay) < 100._wp * 100._wp)
@@ -717,6 +726,8 @@ contains
     !$acc                         parallel loop    collapse(2) copyin(p_lay, vmr_h2o, t_lay) copyout( relhum)
     !$omp target teams distribute parallel do simd collapse(2) map(to:p_lay, vmr_h2o, t_lay) map(from:relhum) 
     do i = 1, ncol 
+       if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+         print *, "[OMP] rrtmgp_allsky.F90:718"
        do k = 1, nlay
           ! Convert h2o vmr to mmr
           mmr_h2o = vmr_h2o(i,k) * mwd
