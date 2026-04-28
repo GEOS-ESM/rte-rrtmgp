@@ -343,6 +343,10 @@ contains
             ! nmu is 1
             do igpt = 1, ngpt
               do icol = 1, ncol
+!$              if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$                print *, "[OMP-INSIDE] mo_rte_lw.F90:337 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$                flush(6)
+!$              end if
                 secants(icol,igpt,1) = lw_Ds(icol,igpt)
               end do
             end do
@@ -357,6 +361,10 @@ contains
             do imu = 1, n_quad_angs
               do igpt = 1, ngpt
                 do icol = 1, ncol
+!$                if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$                  print *, "[OMP-INSIDE] mo_rte_lw.F90:349 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$                  flush(6)
+!$                end if
                   secants(icol,igpt,imu) = gauss_Ds(imu,n_quad_angs)
                 end do
               end do
@@ -400,6 +408,10 @@ contains
             do imu = 1, n_quad_angs
               do igpt = 1, ngpt
                 do icol = 1, ncol
+!$                if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$                  print *, "[OMP-INSIDE] mo_rte_lw.F90:390 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$                  flush(6)
+!$                end if
                   secants(icol,igpt,imu) = gauss_Ds(imu,n_quad_angs)
                 end do
               end do
@@ -444,6 +456,10 @@ contains
             !$omp target teams distribute parallel do simd collapse(2) map(from:fluxes%flux_net)
             do ilev = 1, nlay+1
               do icol = 1, ncol
+!$              if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$                print *, "[OMP-INSIDE] mo_rte_lw.F90:433 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$                flush(6)
+!$              end if
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
             end do
@@ -497,6 +513,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
     do iband = 1, nband
       do icol = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_rte_lw.F90:484 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         do igpt = limits(1, iband), limits(2, iband)
           arr_out(icol, igpt) = arr_in(iband,icol)
         end do

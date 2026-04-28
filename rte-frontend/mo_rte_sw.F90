@@ -95,6 +95,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2)
     do j = 1, nlay
       do i = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_rte_sw.F90:90 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         mu0_bylay(i,j) = mu0(i)
       end do
     end do
@@ -415,6 +419,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
     do iband = 1, nband
       do icol = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_rte_sw.F90:404 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         do igpt = limits(1, iband), limits(2, iband)
           arr_out(icol, igpt) = arr_in(iband,icol)
         end do

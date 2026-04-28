@@ -404,6 +404,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1,ngpt
        do icol = 1,ncol
+!$       if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$         print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:401 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$         flush(6)
+!$       end if
           toa_src(icol,igpt) = this%solar_source(igpt)
        end do
     end do
@@ -595,6 +599,10 @@ contains
       !$omp target teams distribute parallel do simd collapse(2)
       do ilay = 1, nlay
         do icol = 1, ncol
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:590 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
           col_gas(icol,ilay,0) = col_dry_wk(icol,ilay)
         end do
       end do
@@ -605,6 +613,10 @@ contains
       do igas = 1, ngas
         do ilay = 1, nlay
           do icol = 1, ncol
+!$          if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$            print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:597 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$            flush(6)
+!$          end if
             col_gas(icol,ilay,igas) = vmr(icol,ilay,igas) * col_dry_wk(icol,ilay)
           end do
         end do
@@ -790,6 +802,10 @@ contains
     !$acc parallel loop
     !$omp target teams distribute parallel do simd
     do igpt = 1, size(this%solar_source_quiet)
+!$    if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$      print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:782 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$      flush(6)
+!$    end if
       this%solar_source(igpt) = this%solar_source_quiet(igpt) + &
                                 (mg_index - a_offset) * this%solar_source_facular(igpt) + &
                                 (sb_index - b_offset) * this%solar_source_sunspot(igpt)
@@ -1545,6 +1561,10 @@ contains
       !$acc parallel loop
       !$omp target teams distribute parallel do simd
       do icol = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:1527 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         g0(icol) = grav
       end do
     end if
@@ -2041,25 +2061,10 @@ contains
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
-            optical_props%tau(icol,ilay,igpt) = tau(icol,ilay,igpt) + &
-                                       tau_rayleigh(icol,ilay,igpt)
-          end do
-        end do
-      end do
-    !
-    ! asymmetry factor or phase function moments
-    !
-    type is (ty_optical_props_2str)
-      !
-      ! Extinction optical depth and single scattering albedo
-      !
-!$     print *, "[OMP] mo_gas_optics_rrtmgp.F90:2036 max_threads=", omp_get_max_threads()
-!$     flush(6)
-      !$acc parallel loop gang vector collapse(3) default(present)
-      !$omp target teams distribute parallel do simd collapse(3)
-      do igpt = 1, ngpt
-        do ilay = 1, nlay
-          do icol = 1, ncol
+!$          if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$            print *, "[OMP-INSIDE] mo_gas_optics_rrtmgp.F90:2036(2str) teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$            flush(6)
+!$          end if
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t

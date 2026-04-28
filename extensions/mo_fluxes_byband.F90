@@ -191,6 +191,10 @@ contains
     do ibnd = 1, nbnd
       do ilev = 1, nlev
         do icol = 1, ncol
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_fluxes_byband.F90:sum_byband teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
           byband_flux(icol, ilev, ibnd) =  spectral_flux(icol, ilev, band_lims(1, ibnd))
           do igpt = band_lims(1,ibnd)+1, band_lims(2,ibnd)
             byband_flux(icol, ilev, ibnd) = byband_flux(icol, ilev, ibnd) + &
@@ -219,6 +223,10 @@ contains
     do ibnd = 1, nbnd
       do ilev = 1, nlev
         do icol = 1, ncol
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_fluxes_byband.F90:net_byband_full teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
           igpt = band_lims(1,ibnd)
           byband_flux_net(icol, ilev, ibnd) = spectral_flux_dn(icol, ilev, igpt) - &
                                               spectral_flux_up(icol, ilev, igpt)

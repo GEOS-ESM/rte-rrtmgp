@@ -410,6 +410,10 @@ contains
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
         do icol = 1, size(array,1)
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_gas_concentrations.F90:2D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
 #ifdef _CRAYFTN
            array(icol,ilay) = p(icol,ilay)
 #else
@@ -424,6 +428,10 @@ contains
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
         do icol = 1, size(array,1)
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_gas_concentrations.F90:1D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,ilay)
 #else
@@ -438,6 +446,10 @@ contains
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
         do icol = 1, size(array,1)
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_gas_concentrations.F90:scalar teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,1)
 #else

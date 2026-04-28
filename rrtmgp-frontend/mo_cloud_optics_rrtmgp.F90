@@ -456,6 +456,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
       do icol = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_cloud_optics_rrtmgp.F90:453 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         liqmsk(icol,ilay) = clwp(icol,ilay) > 0._wp
         icemsk(icol,ilay) = ciwp(icol,ilay) > 0._wp
       end do
@@ -538,6 +542,10 @@ contains
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1,ncol
+!$            if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$              print *, "[OMP-INSIDE] mo_cloud_optics_rrtmgp.F90:545 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$              flush(6)
+!$            end if
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
               optical_props%tau(icol,ilay,ibnd) = (ltau(icol,ilay,ibnd) - ltaussa(icol,ilay,ibnd)) + &
                                                   (itau(icol,ilay,ibnd) - itaussa(icol,ilay,ibnd))
@@ -660,6 +668,10 @@ contains
     do ibnd = 1, nbnd
       do ilay = 1,nlay
         do icol = 1, ncol
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_cloud_optics_rrtmgp.F90:657 teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
           if(mask(icol,ilay)) then
             index = min(floor((re(icol,ilay) - offset)/step_size)+1, nsteps-1)
             fint = (re(icol,ilay) - offset)/step_size - (index-1)
