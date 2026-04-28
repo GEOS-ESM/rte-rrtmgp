@@ -90,9 +90,9 @@ contains
     !$acc                         parallel loop    collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do j = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_sw.F90:90"
       do i = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_rte_sw.F90:90"
         mu0_bylay(i,j) = mu0(i)
       end do
     end do
@@ -342,9 +342,9 @@ contains
             !$acc                         parallel loop    collapse(2) copyin(fluxes) copyout(fluxes%flux_net)
             !$omp target teams distribute parallel do simd collapse(2)
             do ilev = 1, nlay+1
-              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-                print *, "[OMP] mo_rte_sw.F90:340"
               do icol = 1, ncol
+                if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+                print *, "[OMP] mo_rte_sw.F90:340"
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
             end do
@@ -408,9 +408,9 @@ contains
     !$acc                         parallel loop    collapse(2) copyin(arr_in, limits)
     !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
     do iband = 1, nband
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_sw.F90:404"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_rte_sw.F90:404"
         do igpt = limits(1, iband), limits(2, iband)
           arr_out(icol, igpt) = arr_in(iband,icol)
         end do

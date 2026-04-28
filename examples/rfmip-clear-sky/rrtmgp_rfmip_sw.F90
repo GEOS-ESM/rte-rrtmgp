@@ -251,9 +251,9 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop collapse(2) copy(def_tsi) copyin(toa_flux)
     !$omp target teams distribute parallel do simd collapse(2) map(tofrom:def_tsi) map(to:toa_flux)
     do igpt = 1, ngpt
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:252"
       do icol = 1, block_size
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:252"
         !$acc atomic update
         !$omp atomic update
         def_tsi(icol) = def_tsi(icol) + toa_flux(icol, igpt)
@@ -271,9 +271,9 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop collapse(2) copyin(total_solar_irradiance, def_tsi) copy(toa_flux)
     !$omp target teams distribute parallel do simd collapse(2) map(to:total_solar_irradiance, def_tsi) map(tofrom:toa_flux)
     do igpt = 1, ngpt
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:270"
       do icol = 1, block_size
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:270"
         toa_flux(icol,igpt) = toa_flux(icol,igpt) * total_solar_irradiance(icol,b)/def_tsi(icol)
       end do
     end do
@@ -283,9 +283,9 @@ program rrtmgp_rfmip_sw
     !$acc parallel loop collapse(2) copyin(surface_albedo)
     !$omp target teams distribute parallel do simd collapse(2) map(to:surface_albedo)
     do icol = 1, block_size
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:280"
       do ibnd = 1, nbnd
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_sw.F90:280"
         sfc_alb_spec(ibnd,icol) = surface_albedo(icol,b)
       end do
     end do

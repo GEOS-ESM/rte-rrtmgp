@@ -69,9 +69,9 @@ contains
     !$omp target teams distribute parallel do simd collapse(2) &
     !$omp map(to:ref_alt, ref_mu, alt) map(from:mu)
     do ilay=1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_zenith_angle_spherical_correction.F90:68"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_zenith_angle_spherical_correction.F90:68"
         sin_theta2 = (1-ref_mu(icol)**2) * &
                      ((planet_radius + ref_alt(icol)) / &
                       (planet_radius + alt(icol,ilay)))**2

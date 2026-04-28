@@ -333,9 +333,9 @@ contains
     !$acc              parallel loop default(present) collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:333"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:333"
         aeromsk(icol,ilay) = aero_type(icol,ilay) > 0
       end do
     end do
@@ -392,10 +392,10 @@ contains
         !$omp target teams distribute parallel do simd collapse(3) &
         !$omp map(from:optical_props%tau)
         do ibnd = 1, nbnd
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:392"
           do ilay = 1, nlay
             do icol = 1, ncol
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+              print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:392"
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
               optical_props%tau(icol,ilay,ibnd) = (atau(icol,ilay,ibnd) - ataussa(icol,ilay,ibnd))
             end do
@@ -407,10 +407,10 @@ contains
         !$omp target teams distribute parallel do simd collapse(3) &
         !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g)
         do ibnd = 1, nbnd
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:405"
           do ilay = 1, nlay
             do icol = 1, ncol
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+              print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:405"
               tau    = atau   (icol,ilay,ibnd)
               taussa = ataussa(icol,ilay,ibnd)
               optical_props%tau(icol,ilay,ibnd) = tau
@@ -473,10 +473,10 @@ contains
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:470"
       do ilay = 1,nlay
         do icol = 1, ncol
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_aerosol_optics_rrtmgp_merra.F90:470"
           ! Sequential loop to find size bin
           do i=1,nbin 
              if (size(icol,ilay) .ge. merra_aero_bin_lims(1,i) .and. &

@@ -453,9 +453,9 @@ contains
     !$acc parallel loop gang vector default(present) collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:453"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:453"
         liqmsk(icol,ilay) = clwp(icol,ilay) > 0._wp
         icemsk(icol,ilay) = ciwp(icol,ilay) > 0._wp
       end do
@@ -534,10 +534,10 @@ contains
         !$omp map(from:optical_props%tau)
 
         do ibnd = 1, nbnd
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_cloud_optics_rrtmgp.F90:530"
           do ilay = 1, nlay
             do icol = 1,ncol
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+              print *, "[OMP] mo_cloud_optics_rrtmgp.F90:530"
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
               optical_props%tau(icol,ilay,ibnd) = (ltau(icol,ilay,ibnd) - ltaussa(icol,ilay,ibnd)) + &
                                                   (itau(icol,ilay,ibnd) - itaussa(icol,ilay,ibnd))
@@ -550,10 +550,10 @@ contains
         !$omp target teams distribute parallel do simd collapse(3) &
         !$omp map(from:optical_props%tau, optical_props%ssa, optical_props%g)
         do ibnd = 1, nbnd
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_cloud_optics_rrtmgp.F90:545"
           do ilay = 1, nlay
             do icol = 1,ncol
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+              print *, "[OMP] mo_cloud_optics_rrtmgp.F90:545"
               tau    = ltau   (icol,ilay,ibnd) + itau   (icol,ilay,ibnd)
               taussa = ltaussa(icol,ilay,ibnd) + itaussa(icol,ilay,ibnd)
               optical_props%g  (icol,ilay,ibnd) = (ltaussag(icol,ilay,ibnd) + itaussag(icol,ilay,ibnd)) / &
@@ -656,10 +656,10 @@ contains
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:657"
       do ilay = 1,nlay
         do icol = 1, ncol
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_cloud_optics_rrtmgp.F90:657"
           if(mask(icol,ilay)) then
             index = min(floor((re(icol,ilay) - offset)/step_size)+1, nsteps-1)
             fint = (re(icol,ilay) - offset)/step_size - (index-1)
@@ -713,10 +713,10 @@ contains
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:712"
       do ilay = 1, nlay
         do icol = 1, ncol
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_cloud_optics_rrtmgp.F90:712"
           if(mask(icol,ilay)) then
             !
             ! Finds index into size regime table

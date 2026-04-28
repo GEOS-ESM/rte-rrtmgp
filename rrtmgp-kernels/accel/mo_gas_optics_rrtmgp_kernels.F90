@@ -79,9 +79,9 @@ contains
     !$acc parallel loop gang vector collapse(2) default(present)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:79"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:79"
         ! index and factor for temperature interpolation
         jtemp(icol,ilay) = int((tlay(icol,ilay) - (temp_ref_min - temp_ref_delta)) / temp_ref_delta)
         jtemp(icol,ilay) = min(ntemp - 1, max(1, jtemp(icol,ilay))) ! limit the index range
@@ -103,12 +103,12 @@ contains
     !$acc parallel loop gang vector collapse(4) default(present) private(igases)
     !$omp target teams distribute parallel do simd collapse(4) private(igases)
     do iflav = 1, nflav
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:101"
       do ilay = 1, nlay
         ! loop over implemented combinations of major species
         do icol = 1, ncol
           do itemp = 1, 2
+            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:101"
             igases(:) = flavor(:,iflav)
             ! itropo = 1 lower atmosphere; itropo = 2 upper atmosphere
             itropo = merge(1,2,tropo(icol,ilay))
@@ -392,9 +392,9 @@ contains
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:384"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:384"
 
         !$acc loop seq
         do igpt = 1, ngpt
@@ -470,9 +470,9 @@ contains
     !$acc parallel loop gang vector collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1 , nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:460"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:460"
         !
         ! This check skips individual columns with no pressures in range
         !
@@ -564,9 +564,9 @@ contains
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:552"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:552"
         !$acc loop seq
         do igpt = 1, ngpt
           itropo = merge(1,2,tropo(icol,ilay)) ! itropo = 1 lower atmosphere; itropo = 2 upper atmosphere
@@ -632,9 +632,9 @@ contains
     !$acc parallel loop tile(128,2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:618"
       do icol = 1, ncol
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:618"
 
         !$acc loop seq
         do igpt = 1, ngpt

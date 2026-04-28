@@ -236,9 +236,9 @@ program rrtmgp_rfmip_lw
     !$acc parallel loop collapse(2) copyin(sfc_emis)
     !$omp target teams distribute parallel do simd collapse(2) map(to:sfc_emis)
     do icol = 1, block_size
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_lw.F90:237"
       do ibnd = 1, nbnd
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+        print *, "[OMP] rrtmgp_rfmip_lw.F90:237"
         sfc_emis_spec(ibnd,icol) = sfc_emis(icol,b)
       end do
     end do

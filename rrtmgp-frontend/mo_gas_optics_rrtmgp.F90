@@ -401,9 +401,9 @@ contains
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1,ngpt
-       if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-         print *, "[OMP] mo_gas_optics_rrtmgp.F90:401"
        do icol = 1,ncol
+         if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+         print *, "[OMP] mo_gas_optics_rrtmgp.F90:401"
           toa_src(icol,igpt) = this%solar_source(igpt)
        end do
     end do
@@ -592,19 +592,19 @@ contains
       !$acc parallel loop gang vector collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do ilay = 1, nlay
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp.F90:590"
         do icol = 1, ncol
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_gas_optics_rrtmgp.F90:590"
           col_gas(icol,ilay,0) = col_dry_wk(icol,ilay)
         end do
       end do
       !$acc parallel loop gang vector collapse(3)
       !$omp target teams distribute parallel do simd collapse(3)
       do igas = 1, ngas
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp.F90:597"
         do ilay = 1, nlay
           do icol = 1, ncol
+            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_gas_optics_rrtmgp.F90:597"
             col_gas(icol,ilay,igas) = vmr(icol,ilay,igas) * col_dry_wk(icol,ilay)
           end do
         end do
@@ -911,9 +911,9 @@ contains
      !$acc                parallel loop gang vector collapse(2)
      !$omp target teams distribute parallel do simd collapse(2)
      do ilay = 2, nlay
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp.F90:899"
         do icol = 1, ncol
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_gas_optics_rrtmgp.F90:899"
            tlev_arr(icol,ilay) = (play(icol,ilay-1)*tlay(icol,ilay-1)*(plev(icol,ilay  )-play(icol,ilay)) &
                                 +  play(icol,ilay  )*tlay(icol,ilay  )*(play(icol,ilay-1)-plev(icol,ilay))) /  &
                                   (plev(icol,ilay)*(play(icol,ilay-1) - play(icol,ilay)))
@@ -2037,10 +2037,10 @@ contains
       !$acc parallel loop gang vector collapse(3) default(present)
       !$omp target teams distribute parallel do simd collapse(3)
       do igpt = 1, ngpt
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp.F90:2019"
         do ilay = 1, nlay
           do icol = 1, ncol
+            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_gas_optics_rrtmgp.F90:2019"
             optical_props%tau(icol,ilay,igpt) = tau(icol,ilay,igpt) + &
                                        tau_rayleigh(icol,ilay,igpt)
           end do
@@ -2056,10 +2056,10 @@ contains
       !$acc parallel loop gang vector collapse(3) default(present)
       !$omp target teams distribute parallel do simd collapse(3)
       do igpt = 1, ngpt
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp.F90:2036"
         do ilay = 1, nlay
           do icol = 1, ncol
+            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_gas_optics_rrtmgp.F90:2036"
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2078,10 +2078,10 @@ contains
       !$acc parallel loop gang vector collapse(3) default(present)
       !$omp target teams distribute parallel do simd collapse(3)
       do igpt = 1, ngpt
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp.F90:2056"
         do ilay = 1, nlay
           do icol = 1, ncol
+            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_gas_optics_rrtmgp.F90:2056"
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2098,10 +2098,10 @@ contains
         !$acc parallel loop gang vector collapse(3) default(present)
         !$omp target teams distribute parallel do simd collapse(3)
         do igpt = 1, ngpt
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_gas_optics_rrtmgp.F90:2074"
           do ilay = 1, nlay
             do icol = 1, ncol
+              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+              print *, "[OMP] mo_gas_optics_rrtmgp.F90:2074"
               optical_props%p(2,icol,ilay,igpt) = 0.1_wp
             end do
           end do

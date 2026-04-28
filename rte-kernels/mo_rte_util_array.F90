@@ -50,9 +50,9 @@ contains
     !$acc parallel loop collapse(2) copyout(array)
     !$omp target teams distribute parallel do simd collapse(2) map(from:array)
     do j = 1, nj
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_util_array.F90:48"
       do i = 1, ni
+        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_rte_util_array.F90:48"
         array(i,j) = 0.0_wp
       end do
     end do
@@ -67,10 +67,10 @@ contains
     !$acc parallel loop collapse(3) copyout(array)
     !$omp target teams distribute parallel do simd collapse(3) map(from:array)
     do k = 1, nk
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_util_array.F90:63"
       do j = 1, nj
         do i = 1, ni
+          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+          print *, "[OMP] mo_rte_util_array.F90:63"
           array(i,j,k) = 0.0_wp
         end do
       end do
@@ -86,11 +86,11 @@ contains
     !$acc parallel loop collapse(4) copyout(array)
     !$omp target teams distribute parallel do simd collapse(4) map(from:array)
     do l = 1, nl
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_util_array.F90:80"
       do k = 1, nk
         do j = 1, nj
           do i = 1, ni
+            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
+            print *, "[OMP] mo_rte_util_array.F90:80"
             array(i,j,k,l) = 0.0_wp
           end do
         end do
