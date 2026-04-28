@@ -2062,7 +2062,6 @@ contains
 
     integer :: icol, ilay, igpt, ncol, nlay, ngpt, nmom
     real(wp) :: t
-    integer :: omp_debug_executed
 
     ncol = size(tau, 1)
     nlay = size(tau, 2)
@@ -2072,13 +2071,11 @@ contains
       !
       ! Extinction optical depth
       !
-      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(3) default(present)
-      !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
+      !$omp target teams distribute parallel do simd collapse(3)
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
-!$          omp_debug_executed = omp_debug_executed + 1
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2089,20 +2086,16 @@ contains
            end do
         end do
       end do
-      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:2078 executed", omp_debug_executed, "iterations"
-      !$ flush(6)
       call zero_array(ncol, nlay, ngpt, optical_props%g)
     type is (ty_optical_props_nstr)
       !
       ! Extinction optical depth and single scattering albedo
       !
-      omp_debug_executed = 0
       !$acc parallel loop gang vector collapse(3) default(present)
-      !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
+      !$omp target teams distribute parallel do simd collapse(3)
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
-!$          omp_debug_executed = omp_debug_executed + 1
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2113,24 +2106,18 @@ contains
            end do
         end do
       end do
-      !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:2101 executed", omp_debug_executed, "iterations"
-      !$ flush(6)
       nmom = size(optical_props%p, 1)
       call zero_array(nmom, ncol, nlay, ngpt, optical_props%p)
       if(nmom >= 2) then
-        omp_debug_executed = 0
         !$acc parallel loop gang vector collapse(3) default(present)
-        !$omp target teams distribute parallel do simd collapse(3) reduction(+:omp_debug_executed)
+        !$omp target teams distribute parallel do simd collapse(3)
         do igpt = 1, ngpt
           do ilay = 1, nlay
             do icol = 1, ncol
-!$            omp_debug_executed = omp_debug_executed + 1
               optical_props%p(2,icol,ilay,igpt) = 0.1_wp
             end do
           end do
         end do
-        !$ print *, "[OMP] mo_gas_optics_rrtmgp.F90:2120 executed", omp_debug_executed, "iterations"
-        !$ flush(6)
       end if
     end select
   end subroutine combine_abs_and_rayleigh
