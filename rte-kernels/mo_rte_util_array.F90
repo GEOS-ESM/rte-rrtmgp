@@ -37,6 +37,10 @@ contains
     !$acc parallel loop copyout(array)
     !$omp target teams distribute parallel do simd map(from:array)
     do i = 1, ni
+!$    if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$      print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_1D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$      flush(6)
+!$    end if
       array(i) = 0.0_wp
     end do
   end subroutine zero_array_1D
@@ -53,6 +57,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2) map(from:array)
     do j = 1, nj
       do i = 1, ni
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_2D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         array(i,j) = 0.0_wp
       end do
     end do
@@ -71,6 +79,10 @@ contains
     do k = 1, nk
       do j = 1, nj
         do i = 1, ni
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_3D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
           array(i,j,k) = 0.0_wp
         end do
       end do
@@ -91,6 +103,10 @@ contains
       do k = 1, nk
         do j = 1, nj
           do i = 1, ni
+!$          if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$            print *, "[OMP-INSIDE] mo_rte_util_array.F90:zero_array_4D teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$            flush(6)
+!$          end if
             array(i,j,k,l) = 0.0_wp
           end do
         end do

@@ -49,7 +49,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
-
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_fluxes_broadband_kernels.F90:sum_broadband teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         bb_flux_s = 0.0_wp
 
         do igpt = 1, ngpt
@@ -86,6 +89,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_fluxes_broadband_kernels.F90:net_broadband_full(1) teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
         diff = spectral_flux_dn(icol, ilev, 1   ) - spectral_flux_up(icol, ilev,     1)
         broadband_flux_net(icol, ilev) = diff
       end do
@@ -97,6 +104,10 @@ contains
     do igpt = 2, ngpt
       do ilev = 1, nlev
         do icol = 1, ncol
+!$        if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$          print *, "[OMP-INSIDE] mo_fluxes_broadband_kernels.F90:net_broadband_full(2) teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$          flush(6)
+!$        end if
           diff = spectral_flux_dn(icol, ilev, igpt) - spectral_flux_up(icol, ilev, igpt)
           !$acc atomic update
           !$omp atomic update
@@ -129,6 +140,10 @@ contains
     !$omp target teams distribute parallel do simd collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
+!$      if (omp_get_team_num() == 0 .and. omp_get_thread_num() == 0) then
+!$        print *, "[OMP-INSIDE] mo_fluxes_broadband_kernels.F90:net_broadband_precalc teams=", omp_get_num_teams(), " threads=", omp_get_num_threads()
+!$        flush(6)
+!$      end if
          broadband_flux_net(icol,ilev) = flux_dn(icol,ilev) - flux_up(icol,ilev)
        end do
     end do
