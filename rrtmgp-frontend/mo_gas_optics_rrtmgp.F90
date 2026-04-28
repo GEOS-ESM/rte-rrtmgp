@@ -2078,7 +2078,7 @@ contains
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
-            omp_debug_executed = omp_debug_executed + 1
+!$          omp_debug_executed = omp_debug_executed + 1
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2102,7 +2102,7 @@ contains
       do igpt = 1, ngpt
         do ilay = 1, nlay
           do icol = 1, ncol
-            omp_debug_executed = omp_debug_executed + 1
+!$          omp_debug_executed = omp_debug_executed + 1
             t = tau(icol,ilay,igpt) + tau_rayleigh(icol,ilay,igpt)
             if(t > 2._wp * tiny(t)) then
                optical_props%ssa(icol,ilay,igpt) = tau_rayleigh(icol,ilay,igpt) / t
@@ -2124,7 +2124,7 @@ contains
         do igpt = 1, ngpt
           do ilay = 1, nlay
             do icol = 1, ncol
-              omp_debug_executed = omp_debug_executed + 1
+!$            omp_debug_executed = omp_debug_executed + 1
               optical_props%p(2,icol,ilay,igpt) = 0.1_wp
             end do
           end do
