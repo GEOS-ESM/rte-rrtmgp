@@ -28,7 +28,7 @@ module mo_cloud_optics_rrtmgp
                               ty_optical_props_1scl, &
                               ty_optical_props_2str, &
                               ty_optical_props_nstr
-  use omp_lib
+!$  use omp_lib
   implicit none
   interface pade_eval
     module procedure pade_eval_nbnd, pade_eval_1
@@ -450,12 +450,12 @@ contains
     !
     ! Cloud masks; don't need value re values if there's no cloud
     !
+!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:453 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector default(present) collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_cloud_optics_rrtmgp.F90:453"
         liqmsk(icol,ilay) = clwp(icol,ilay) > 0._wp
         icemsk(icol,ilay) = ciwp(icol,ilay) > 0._wp
       end do
@@ -528,6 +528,8 @@ contains
       !
       select type(optical_props)
       type is (ty_optical_props_1scl)
+!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:530 max_threads=", omp_get_max_threads()
+!$     flush(6)
         !$acc parallel loop gang vector default(present) collapse(3) &
         !$acc               copyin(optical_props) copyout(optical_props%tau)
         !$omp target teams distribute parallel do simd collapse(3) &
@@ -536,8 +538,6 @@ contains
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1,ncol
-              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-              print *, "[OMP] mo_cloud_optics_rrtmgp.F90:530"
               ! Absorption optical depth  = (1-ssa) * tau = tau - taussa
               optical_props%tau(icol,ilay,ibnd) = (ltau(icol,ilay,ibnd) - ltaussa(icol,ilay,ibnd)) + &
                                                   (itau(icol,ilay,ibnd) - itaussa(icol,ilay,ibnd))
@@ -545,6 +545,8 @@ contains
           end do
         end do
       type is (ty_optical_props_2str)
+!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:545 max_threads=", omp_get_max_threads()
+!$     flush(6)
         !$acc parallel loop gang vector default(present) collapse(3) &
         !$acc               copyin(optical_props) copyout(optical_props%tau, optical_props%ssa, optical_props%g)
         !$omp target teams distribute parallel do simd collapse(3) &
@@ -552,8 +554,6 @@ contains
         do ibnd = 1, nbnd
           do ilay = 1, nlay
             do icol = 1,ncol
-              if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-              print *, "[OMP] mo_cloud_optics_rrtmgp.F90:545"
               tau    = ltau   (icol,ilay,ibnd) + itau   (icol,ilay,ibnd)
               taussa = ltaussa(icol,ilay,ibnd) + itaussa(icol,ilay,ibnd)
               optical_props%g  (icol,ilay,ibnd) = (ltaussag(icol,ilay,ibnd) + itaussag(icol,ilay,ibnd)) / &
@@ -653,13 +653,13 @@ contains
     real(wp) :: fint
     real(wp) :: t, ts  ! tau, tau*ssa, tau*ssa*g
     ! ---------------------------
+!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:657 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
       do ilay = 1,nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_cloud_optics_rrtmgp.F90:657"
           if(mask(icol,ilay)) then
             index = min(floor((re(icol,ilay) - offset)/step_size)+1, nsteps-1)
             fint = (re(icol,ilay) - offset)/step_size - (index-1)
@@ -710,13 +710,13 @@ contains
     integer  :: icol, ilay, ibnd, irad
     real(wp) :: t, ts
 
+!$     print *, "[OMP] mo_cloud_optics_rrtmgp.F90:712 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector default(present) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do ibnd = 1, nbnd
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_cloud_optics_rrtmgp.F90:712"
           if(mask(icol,ilay)) then
             !
             ! Finds index into size regime table

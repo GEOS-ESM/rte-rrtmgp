@@ -81,7 +81,7 @@ program rrtmgp_rfmip_lw
   use mo_load_coefficients,  only: load_and_init
   use mo_rfmip_io,           only: read_size, read_and_block_pt, read_and_block_gases_ty, unblock_and_write, &
                                    read_and_block_lw_bc, determine_gas_names
-  use omp_lib
+!$  use omp_lib
   implicit none
   ! --------------------------------------------------
   !
@@ -233,12 +233,12 @@ program rrtmgp_rfmip_lw
     ! Expand the spectrally-constant surface emissivity to a per-band emissivity for each column
     !   (This is partly to show how to keep work on GPUs using OpenACC)
     !
+!$     print *, "[OMP] rrtmgp_rfmip_lw.F90:237 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2) copyin(sfc_emis)
     !$omp target teams distribute parallel do simd collapse(2) map(to:sfc_emis)
     do icol = 1, block_size
       do ibnd = 1, nbnd
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_lw.F90:237"
         sfc_emis_spec(ibnd,icol) = sfc_emis(icol,b)
       end do
     end do

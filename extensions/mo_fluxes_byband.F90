@@ -22,7 +22,7 @@ module mo_fluxes_byband
                         only: extents_are
   use mo_fluxes,        only: ty_fluxes, ty_fluxes_broadband
   use mo_optical_props, only: ty_optical_props
-  use omp_lib
+!$  use omp_lib
   implicit none
 
   ! Output from radiation calculations
@@ -184,13 +184,13 @@ contains
     real(wp), dimension(ncol, nlev, nbnd), intent(out) :: byband_flux
 
     integer :: icol, ilev, igpt, ibnd
+!$     print *, "[OMP] mo_fluxes_byband.F90:187 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3) copyin(spectral_flux, band_lims) copyout(byband_flux)
     !$omp target teams distribute parallel do collapse(3) map(to:spectral_flux, band_lims) map(from:byband_flux)
     do ibnd = 1, nbnd
       do ilev = 1, nlev
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_fluxes_byband.F90:187"
           byband_flux(icol, ilev, ibnd) =  spectral_flux(icol, ilev, band_lims(1, ibnd))
           do igpt = band_lims(1,ibnd)+1, band_lims(2,ibnd)
             byband_flux(icol, ilev, ibnd) = byband_flux(icol, ilev, ibnd) + &
@@ -212,13 +212,13 @@ contains
 
     integer :: icol, ilev, igpt, ibnd
 
+!$     print *, "[OMP] mo_fluxes_byband.F90:213 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3) copyin(spectral_flux_dn, spectral_flux_up, band_lims) copyout(byband_flux_net)
     !$omp target teams distribute parallel do collapse(3) map(to:spectral_flux_dn, spectral_flux_up, band_lims) map(from:byband_flux_net)
     do ibnd = 1, nbnd
       do ilev = 1, nlev
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_fluxes_byband.F90:213"
           igpt = band_lims(1,ibnd)
           byband_flux_net(icol, ilev, ibnd) = spectral_flux_dn(icol, ilev, igpt) - &
                                               spectral_flux_up(icol, ilev, igpt)

@@ -43,7 +43,7 @@ module mo_rte_sw
   use mo_fluxes,        only: ty_fluxes, ty_fluxes_broadband
   use mo_rte_solver_kernels, &
                         only: sw_solver_noscat, sw_solver_2stream
-  use omp_lib
+!$  use omp_lib
   implicit none
   private
 
@@ -83,16 +83,18 @@ contains
 
     ncol = size(mu0)
     nlay = atmos%get_nlay()
+    print *, "[HOST] rte_sw_mu0_bycol entered (mo_rte_sw.F90)"
+    flush(6)
     ! Solar zenith angle cosine is constant with height
     !$acc        data copyin(mu0)    create(mu0_bylay)
     !$omp target data map(to:mu0) map(alloc:mu0_bylay)
 
+!$     print *, "[OMP] mo_rte_sw.F90:90 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do j = 1, nlay
       do i = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_sw.F90:90"
         mu0_bylay(i,j) = mu0(i)
       end do
     end do
@@ -149,6 +151,8 @@ contains
     ngpt  = atmos%get_ngpt()
     nband = atmos%get_nband()
     error_msg = ""
+    print *, "[HOST] rte_sw_mu0_full entered (mo_rte_sw.F90)"
+    flush(6)
     ! ------------------------------------------------------------------------------------
     !
     ! Error checking -- consistency of sizes and validity of values
@@ -339,12 +343,12 @@ contains
         !
         type is (ty_fluxes_broadband)
           if(associated(fluxes%flux_net)) then
+!$     print *, "[OMP] mo_rte_sw.F90:340 max_threads=", omp_get_max_threads()
+!$     flush(6)
             !$acc                         parallel loop    collapse(2) copyin(fluxes) copyout(fluxes%flux_net)
             !$omp target teams distribute parallel do simd collapse(2)
             do ilev = 1, nlay+1
               do icol = 1, ncol
-                if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-                print *, "[OMP] mo_rte_sw.F90:340"
                 fluxes%flux_net(icol,ilev) = flux_dn_loc(icol,ilev) - flux_up_loc(icol,ilev)
               end do
             end do
@@ -405,12 +409,12 @@ contains
     nband = ops%get_nband()
     ngpt  = ops%get_ngpt()
     limits = ops%get_band_lims_gpoint()
+!$     print *, "[OMP] mo_rte_sw.F90:404 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) copyin(arr_in, limits)
     !$omp target teams distribute parallel do simd collapse(2) map(to:arr_in, limits)
     do iband = 1, nband
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_sw.F90:404"
         do igpt = limits(1, iband), limits(2, iband)
           arr_out(icol, igpt) = arr_in(iband,icol)
         end do

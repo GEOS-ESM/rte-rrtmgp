@@ -29,7 +29,7 @@ module mo_rte_solver_kernels
   use,  intrinsic :: iso_c_binding
   use mo_rte_kind,       only: wp, wl
   use mo_rte_util_array, only: zero_array
-  use omp_lib
+!$  use omp_lib
   implicit none
   private
 
@@ -126,12 +126,12 @@ contains
     !$acc        enter data create(   flux_dn,flux_up)
     !$omp target enter data map(alloc:flux_dn,flux_up)
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:129 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1, ngpt
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_solver_kernels.F90:129"
         !
         ! Transport is for intensity
         !   convert flux at top of domain to intensity assuming azimuthal isotropy
@@ -145,13 +145,13 @@ contains
     !$acc        data copyin(sfc_srcJac) create(   gpt_Jac) if(do_Jacobians)
     !$omp target data map(to:sfc_srcJac) map(alloc:gpt_Jac) if(do_Jacobians)
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:146 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop no_create(An, Cn, gpt_Jac, g) collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:146"
           !
           ! The wb and scaleTau terms are independent of propagation
           !   angle D and could be pre-computed if several values of D are used
@@ -193,12 +193,12 @@ contains
     !
     ! Surface reflection and emission
     !
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:192 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) no_create(gpt_Jac, sfc_srcJac)
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1, ngpt
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_solver_kernels.F90:192"
         !
         ! Surface albedo, surface source function
         !
@@ -466,12 +466,12 @@ contains
                         gamma1, gamma2, Rdif, Tdif, tau, &
                         source_dn, source_up, source_sfc)
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:463 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1, ngpt
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_solver_kernels.F90:463"
         sfc_albedo(icol,          igpt) = 1._wp - sfc_emis(icol,igpt)
         flux_dn   (icol,top_level,igpt) = inc_flux(icol,igpt)
       end do
@@ -524,12 +524,12 @@ contains
       !   radiation just passed through?
       ! layer index = level index - 1
       ! previous level is up (-1)
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:519 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:519"
           flux_dir(icol,    1,igpt) = inc_flux_dir(icol,   igpt) * mu0(icol, 1)
           do ilev = 2, nlay+1
             flux_dir(icol,ilev,igpt) = flux_dir(icol,ilev-1,igpt) * exp(-tau(icol,ilev,igpt)/mu0(icol, ilev-1))
@@ -539,12 +539,12 @@ contains
     else
       ! layer index = level index
       ! previous level is up (+1)
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:532 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:532"
           flux_dir(icol,nlay+1,igpt) = inc_flux_dir(icol, igpt) * mu0(icol, nlay)
           do ilev = nlay, 1, -1
             flux_dir(icol,ilev,igpt) = flux_dir(icol,ilev+1,igpt) * exp(-tau(icol,ilev,igpt)/mu0(icol, ilev))
@@ -621,12 +621,12 @@ contains
     !$acc        data copyout(flux_up, flux_dn, flux_dir) if (.not. do_broadband)
     !$omp target data map(to: flux_up, flux_dn, flux_dir) if (.not. do_broadband)
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:612 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1, ngpt
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_solver_kernels.F90:612"
         gpt_flux_dir(icol, top_level, igpt)  = inc_flux_dir(icol,igpt) * mu0(icol, top_layer)
       end do
     end do
@@ -635,22 +635,22 @@ contains
     ! ... and diffuse field, using 0 if no BC is provided
     !
     if(has_dif_bc) then
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:624 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc                         parallel loop    collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:624"
           gpt_flux_dn(icol, top_level, igpt)  = inc_flux_dif(icol,igpt)
         end do
       end do
     else
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:632 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc                         parallel loop    collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:632"
           gpt_flux_dn(icol, top_level, igpt)  = 0._wp
         end do
       end do
@@ -776,12 +776,12 @@ contains
       !
       ! Top of domain is index 1
       !
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:761 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc  parallel loop collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:761"
           do ilev = 2, nlay+1
             radn_dn(icol,ilev,igpt) = trans(icol,ilev-1,igpt)*radn_dn(icol,ilev-1,igpt) + source_dn(icol,ilev-1,igpt)
           end do
@@ -791,12 +791,12 @@ contains
       !
       ! Top of domain is index nlay+1
       !
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:774 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc  parallel loop collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:774"
           do ilev = nlay, 1, -1
             radn_dn(icol,ilev,igpt) = trans(icol,ilev  ,igpt)*radn_dn(icol,ilev+1,igpt) + source_dn(icol,ilev,igpt)
           end do
@@ -824,12 +824,12 @@ contains
       !
       ! Top of domain is index 1
       !
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:805 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc  parallel loop collapse(2) no_create(radn_upJac)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:805"
           do ilev = nlay, 1, -1
             radn_up     (icol,ilev,igpt) = trans(icol,ilev,igpt)*radn_up   (icol,ilev+1,igpt) + source_up(icol,ilev,igpt)
           end do
@@ -845,12 +845,12 @@ contains
       !
       ! Top of domain is index nlay+1
       !
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:824 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc  parallel loop collapse(2) no_create(radn_upJac)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:824"
           do ilev = 2, nlay+1
             radn_up     (icol,ilev,igpt) = trans(icol,ilev-1,igpt) * radn_up   (icol,ilev-1,igpt) +  source_up(icol,ilev-1,igpt)
           end do
@@ -896,13 +896,13 @@ contains
     !$acc enter data create(gamma1, gamma2, Rdif, Tdif)
     !$omp target enter data map(alloc:gamma1, gamma2, Rdif, Tdif)
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:873 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:873"
           !
           ! Coefficients differ from SW implementation because the phase function is more isotropic
           !   Here we follow Fu et al. 1997, doi:10.1175/1520-0469(1997)054<2799:MSPITI>2.0.CO;2
@@ -977,13 +977,13 @@ contains
     !$acc enter data create(source_dn, source_up, source_sfc)
     !$omp target enter data map(alloc:source_dn, source_up, source_sfc)
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:952 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:952"
           if (tau(icol,ilay,igpt) > 1.0e-8_wp) then
             if(top_at_1) then
               lev_source_top = lev_source(icol,ilay  ,igpt)
@@ -1065,12 +1065,12 @@ contains
     integer  :: lay_index, inc_index, trans_index
     real(wp) :: tau_s, w0_s, g_s, mu0_s
     ! ---------------------------------
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1038 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do igpt = 1, ngpt
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_solver_kernels.F90:1038"
         do ilay = 1, nlay
           if(top_at_1) then
             lay_index   = ilay
@@ -1224,12 +1224,12 @@ contains
     !$omp target enter data map(alloc:flux_up, albedo, src, denom)
 
     if(top_at_1) then
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1195 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop gang vector collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:1195"
           ilev = nlay + 1
           ! Albedo of lowest level is the surface albedo...
           albedo(icol,ilev,igpt)  = albedo_sfc(icol,igpt)
@@ -1274,12 +1274,12 @@ contains
 
     else
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1243 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop collapse(2)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:1243"
           ilev = 1
           ! Albedo of lowest level is the surface albedo...
           albedo(icol,ilev,igpt)  = albedo_sfc(icol,igpt)
@@ -1361,12 +1361,12 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
       ! Top of domain is index 1
       !
       ! Downward propagation
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1328 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc                         parallel loop    collapse(2) no_create(radn_up_Jac)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:1328"
           ! Upward propagation
           do ilev = nlay, 1, -1
             adjustmentFactor = Cn(icol,ilev,igpt) * &
@@ -1398,12 +1398,12 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
         enddo
       enddo
     else
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1363 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc  parallel loop collapse(2) no_create(radn_up_Jac)
       !$omp target teams distribute parallel do simd collapse(2)
       do igpt = 1, ngpt
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:1363"
           ! Upward propagation
           do ilev = 1, nlay
             adjustmentFactor = Cn(icol,ilev,igpt)*&
@@ -1449,12 +1449,12 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
   integer  :: icol, ilev, igpt
   real(wp) :: scalar ! local scalar version
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1412 max_threads=", omp_get_max_threads()
+!$     flush(6)
   !$acc                         parallel loop gang vector collapse(2)
   !$omp target teams distribute parallel do simd          collapse(2)
   do ilev = 1, nlev
     do icol = 1, ncol
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-      print *, "[OMP] mo_rte_solver_kernels.F90:1412"
 
       scalar = 0.0_wp
 
@@ -1477,13 +1477,13 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
 
     integer  :: icol, ilev, igpt
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1438 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop gang vector collapse(3)
     !$omp target teams distribute parallel do simd          collapse(3)
     do igpt = 1, ngpt
       do ilev = 1, nlev
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:1438"
           array(icol, ilev, igpt) = factor * array(icol, ilev, igpt)
         end do
       end do
@@ -1500,13 +1500,13 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
 
     integer  :: icol, ilev, igpt
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1459 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop gang vector collapse(3)
     !$omp target teams distribute parallel do simd          collapse(3)
     do igpt = 1, ngpt
       do ilev = 1, nlev
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_solver_kernels.F90:1459"
           array(icol, ilev, igpt) = array(icol, ilev, igpt) + increment(icol, ilev, igpt)
         end do
       end do
@@ -1520,12 +1520,12 @@ subroutine lw_transport_1rescl(ncol, nlay, ngpt, top_at_1, &
 
     integer  :: icol, ilev
 
+!$     print *, "[OMP] mo_rte_solver_kernels.F90:1477 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop gang vector collapse(2)
     !$omp target teams distribute parallel do simd          collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_solver_kernels.F90:1477"
         array(icol, ilev) = array(icol, ilev) + increment(icol, ilev)
       end do
     end do

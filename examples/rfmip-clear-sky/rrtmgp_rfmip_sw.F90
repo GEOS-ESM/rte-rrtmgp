@@ -81,7 +81,7 @@ program rrtmgp_rfmip_sw
   use mo_load_coefficients,  only: load_and_init
   use mo_rfmip_io,           only: read_size, read_and_block_pt, read_and_block_gases_ty, unblock_and_write, &
                                    read_and_block_sw_bc, determine_gas_names
-  use omp_lib
+!$  use omp_lib
   implicit none
   ! --------------------------------------------------
   !
@@ -248,12 +248,12 @@ program rrtmgp_rfmip_sw
     !
 #if defined(_OPENACC) || defined(_OPENMP)
     call zero_array(block_size, def_tsi)
+!$     print *, "[OMP] rrtmgp_rfmip_sw.F90:252 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2) copy(def_tsi) copyin(toa_flux)
     !$omp target teams distribute parallel do simd collapse(2) map(tofrom:def_tsi) map(to:toa_flux)
     do igpt = 1, ngpt
       do icol = 1, block_size
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:252"
         !$acc atomic update
         !$omp atomic update
         def_tsi(icol) = def_tsi(icol) + toa_flux(icol, igpt)
@@ -268,35 +268,35 @@ program rrtmgp_rfmip_sw
     !
     ! Normalize incoming solar flux to match RFMIP specification
     !
+!$     print *, "[OMP] rrtmgp_rfmip_sw.F90:270 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2) copyin(total_solar_irradiance, def_tsi) copy(toa_flux)
     !$omp target teams distribute parallel do simd collapse(2) map(to:total_solar_irradiance, def_tsi) map(tofrom:toa_flux)
     do igpt = 1, ngpt
       do icol = 1, block_size
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:270"
         toa_flux(icol,igpt) = toa_flux(icol,igpt) * total_solar_irradiance(icol,b)/def_tsi(icol)
       end do
     end do
     !
     ! Expand the spectrally-constant surface albedo to a per-band albedo for each column
     !
+!$     print *, "[OMP] rrtmgp_rfmip_sw.F90:280 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2) copyin(surface_albedo)
     !$omp target teams distribute parallel do simd collapse(2) map(to:surface_albedo)
     do icol = 1, block_size
       do ibnd = 1, nbnd
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:280"
         sfc_alb_spec(ibnd,icol) = surface_albedo(icol,b)
       end do
     end do
     !
     ! Cosine of the solar zenith angle
     !
+!$     print *, "[OMP] rrtmgp_rfmip_sw.F90:290 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop copyin(solar_zenith_angle, usecol)
     !$omp target teams distribute parallel do simd map(to:solar_zenith_angle, usecol)
     do icol = 1, block_size
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_rfmip_sw.F90:290"
       mu0(icol) = merge(cos(solar_zenith_angle(icol,b)*deg_to_rad), 1._wp, usecol(icol,b))
     end do
 

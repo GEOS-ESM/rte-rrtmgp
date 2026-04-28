@@ -26,7 +26,7 @@
 module mo_optical_props_kernels
   use, intrinsic :: iso_c_binding
   use mo_rte_kind, only: wp, wl
-  use omp_lib
+!$  use omp_lib
   implicit none
 
   public
@@ -60,6 +60,8 @@ contains
     ! --------------
     ! --------------
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:66 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3) &
     !$acc&     copy(ssa(:ncol,:nlay,:ngpt),tau(:ncol,:nlay,:ngpt)) &
     !$acc&     copyin(f(:ncol,:nlay,:ngpt)) &
@@ -71,8 +73,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:66"
           if(tau(icol,ilay,igpt) > eps) then
             wf = ssa(icol,ilay,igpt) * f(icol,ilay,igpt)
             tau(icol,ilay,igpt) = (1._wp - wf) * tau(icol,ilay,igpt)
@@ -97,6 +97,8 @@ contains
     ! --------------
     ! --------------
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:99 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3) &
     !$acc&     copy(tau(:ncol,:nlay,:ngpt),ssa(:ncol,:nlay,:ngpt),g(:ncol,:nlay,:ngpt))
     !$omp target teams distribute parallel do simd collapse(3) &
@@ -104,8 +106,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:99"
           if(tau(icol,ilay,igpt) > eps) then
             f  = g  (icol,ilay,igpt) * g  (icol,ilay,igpt)
             wf = ssa(icol,ilay,igpt) * f
@@ -153,6 +153,8 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:152 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3) 
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
@@ -160,8 +162,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:152"
           tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
         end do
       end do
@@ -191,6 +191,8 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:188 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
@@ -199,8 +201,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:188"
           tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + &
                                  tau2(icol,ilay,igpt) * (1._wp - ssa2(icol,ilay,igpt))
         end do
@@ -230,6 +230,8 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:225 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
@@ -238,8 +240,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:225"
           tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + &
                                  tau2(icol,ilay,igpt) * (1._wp - ssa2(icol,ilay,igpt))
         end do
@@ -271,6 +271,8 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:264 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:ssa1) &
@@ -279,8 +281,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:264"
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           if(tau12 > eps) then
             ssa1(icol,ilay,igpt) = tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) / tau12
@@ -315,6 +315,8 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, g2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:306 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:g2) &
@@ -324,8 +326,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:306"
           ! t=tau1 + tau2
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           ! w=(tau1*ssa1 + tau2*ssa2) / t
@@ -369,6 +369,8 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, p2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:358 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:p2) &
@@ -378,8 +380,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:358"
           ! t=tau1 + tau2
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           ! w=(tau1*ssa1 + tau2*ssa2) / t
@@ -422,6 +422,8 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:409 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:ssa1) &
@@ -430,8 +432,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:409"
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           if(tau12 > eps) then
             ssa1(icol,ilay,igpt) = tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) / tau12
@@ -470,6 +470,8 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, g2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:455 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:p1, ssa1) &
@@ -480,8 +482,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:455"
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           tauscat12 = &
              tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) + &
@@ -533,6 +533,8 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, p2)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:516 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc  parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:p2) &
@@ -542,8 +544,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:516"
           tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,igpt)
           tauscat12 = &
              tau1(icol,ilay,igpt) * ssa1(icol,ilay,igpt) + &
@@ -590,6 +590,8 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:571 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2) &
@@ -598,8 +600,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1 , nlay
         do icol = 1 , ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:571"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -632,6 +632,8 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:611 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:tau2, ssa2) &
@@ -640,8 +642,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1 , nlay
         do icol = 1 , ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:611"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd) * (1._wp - ssa2(icol,ilay,ibnd))
@@ -674,6 +674,8 @@ contains
     !$acc data copy(tau1)
     !$acc data copyin(tau2, ssa2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:651 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:gpt_lims, tau2) &
@@ -682,8 +684,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1 , nlay
         do icol = 1 , ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:651"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau1(icol,ilay,igpt) = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd) * (1._wp - ssa2(icol,ilay,ibnd))
@@ -719,6 +719,8 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:694 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
@@ -728,8 +730,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:694"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -766,6 +766,8 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, g2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:739 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
@@ -777,8 +779,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:739"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               ! t=tau1 + tau2
@@ -825,6 +825,8 @@ contains
     !$acc data copy(tau1, ssa1, g1)
     !$acc data copyin(tau2, ssa2, p2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:796 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
@@ -835,8 +837,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:796"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               ! t=tau1 + tau2
@@ -882,6 +882,8 @@ contains
     !$acc data copy(tau1, ssa1)
     !$acc data copyin(tau2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:851 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
@@ -891,8 +893,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:851"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -934,6 +934,8 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, g2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:901 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(tofrom:tau1) &
@@ -944,8 +946,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:901"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -1000,6 +1000,8 @@ contains
     !$acc data copy(tau1, ssa1, p1)
     !$acc data copyin(tau2, ssa2, p2, gpt_lims)
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:965 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3) &
     !$omp& map(to:p2) &
@@ -1012,8 +1014,6 @@ contains
     do igpt = 1 , ngpt
       do ilay = 1, nlay
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:965"
           do ibnd = 1, nbnd
             if (igpt >= gpt_lims(1, ibnd) .and. igpt <= gpt_lims(2, ibnd) ) then
               tau12 = tau1(icol,ilay,igpt) + tau2(icol,ilay,ibnd)
@@ -1053,6 +1053,8 @@ contains
                              nlay,ngpt), intent(out) :: array_out
     integer :: icol, ilay, igpt
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:1018 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3) &
     !$acc&     copyout(array_out) &
     !$acc&     copyin(array_in)
@@ -1062,8 +1064,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = colS, colE
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:1018"
           array_out(icol-colS+1, ilay, igpt) = array_in(icol, ilay, igpt)
         end do
       end do
@@ -1081,6 +1081,8 @@ contains
 
     integer :: icol, ilay, igpt, imom
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:1044 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(4) &
     !$acc&     copyout(array_out(:nmom,:cole-cols+1,:nlay,:ngpt)) &
     !$acc&     copyin(array_in(:nmom,cols:cole,:nlay,:ngpt))
@@ -1091,8 +1093,6 @@ contains
       do ilay = 1, nlay
         do icol = colS, colE
           do imom = 1, nmom
-            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_optical_props_kernels.F90:1044"
             array_out(imom, icol-colS+1, ilay, igpt) = array_in(imom, icol, ilay, igpt)
           end do
         end do
@@ -1115,6 +1115,8 @@ contains
 
     integer :: icol, ilay, igpt
 
+!$     print *, "[OMP] mo_optical_props_kernels.F90:1077 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3) &
     !$acc&     copyin(ssa_in(cols:cole,:nlay,:ngpt)) &
     !$acc&     copyout(tau_out(:cole-cols+1,:nlay,:ngpt)) &
@@ -1126,8 +1128,6 @@ contains
     do igpt = 1, ngpt
       do ilay = 1, nlay
         do icol = colS, colE
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_optical_props_kernels.F90:1077"
           tau_out(icol-colS+1, ilay, igpt) = &
             tau_in(icol, ilay, igpt) * (1._wp - ssa_in(icol, ilay, igpt))
         end do

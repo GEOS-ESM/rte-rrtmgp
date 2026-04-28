@@ -19,7 +19,7 @@ module mo_zenith_angle_spherical_correction
   use mo_rte_config,     only: check_extents, check_values
   use mo_rte_util_array_validation, & 
                          only: extents_are, any_vals_outside, any_vals_less_than
-  use omp_lib
+!$  use omp_lib
   implicit none
   private
   public :: zenith_angle_with_height
@@ -64,14 +64,14 @@ contains
     end if
     if(len_trim(error_msg) /= 0) return
     ! ------------------------------------
+!$     print *, "[OMP] mo_zenith_angle_spherical_correction.F90:68 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) &
     !$acc copyin(ref_alt, ref_mu, alt) copyout(mu)
     !$omp target teams distribute parallel do simd collapse(2) &
     !$omp map(to:ref_alt, ref_mu, alt) map(from:mu)
     do ilay=1, nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_zenith_angle_spherical_correction.F90:68"
         sin_theta2 = (1-ref_mu(icol)**2) * &
                      ((planet_radius + ref_alt(icol)) / &
                       (planet_radius + alt(icol,ilay)))**2

@@ -13,7 +13,7 @@
 ! -------------------------------------------------------------------------------------------------
 module mo_rte_util_array
   use mo_rte_kind,      only: wp, wl
-  use omp_lib
+!$  use omp_lib
   implicit none
   !>
   !> Efficiently set arrays to zero
@@ -32,11 +32,11 @@ contains
     ! -----------------------
     integer :: i
     ! -----------------------
+!$     print *, "[OMP] mo_rte_util_array.F90:35 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop copyout(array)
     !$omp target teams distribute parallel do simd map(from:array)
     do i = 1, ni
-      if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_rte_util_array.F90:35"
       array(i) = 0.0_wp
     end do
   end subroutine zero_array_1D
@@ -47,12 +47,12 @@ contains
     ! -----------------------
     integer :: i,j
     ! -----------------------
+!$     print *, "[OMP] mo_rte_util_array.F90:48 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2) copyout(array)
     !$omp target teams distribute parallel do simd collapse(2) map(from:array)
     do j = 1, nj
       do i = 1, ni
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_util_array.F90:48"
         array(i,j) = 0.0_wp
       end do
     end do
@@ -64,13 +64,13 @@ contains
     ! -----------------------
     integer :: i,j,k
     ! -----------------------
+!$     print *, "[OMP] mo_rte_util_array.F90:63 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3) copyout(array)
     !$omp target teams distribute parallel do simd collapse(3) map(from:array)
     do k = 1, nk
       do j = 1, nj
         do i = 1, ni
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_rte_util_array.F90:63"
           array(i,j,k) = 0.0_wp
         end do
       end do
@@ -83,14 +83,14 @@ contains
     ! -----------------------
     integer :: i,j,k,l
     ! -----------------------
+!$     print *, "[OMP] mo_rte_util_array.F90:80 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(4) copyout(array)
     !$omp target teams distribute parallel do simd collapse(4) map(from:array)
     do l = 1, nl
       do k = 1, nk
         do j = 1, nj
           do i = 1, ni
-            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_rte_util_array.F90:80"
             array(i,j,k,l) = 0.0_wp
           end do
         end do

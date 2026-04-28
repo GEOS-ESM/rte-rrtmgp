@@ -40,7 +40,7 @@ module mo_gas_concentrations
   use mo_rte_config,         only: check_values
   use mo_rte_util_array_validation, & 
                              only: any_vals_outside
-  use omp_lib
+!$  use omp_lib
   implicit none
   integer, parameter, private :: GAS_NOT_IN_LIST = -1
   private
@@ -404,11 +404,11 @@ contains
     !$acc data copyout (array) present(this, this%concs)
     !$omp target data map(from:array)
     if(size(this%concs(igas)%conc, 1) > 1) then      ! Concentration stored as 2D
+!$     print *, "[OMP] mo_gas_concentrations.F90:407 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop collapse(2) default(none) present(p)
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_concentrations.F90:407"
         do icol = 1, size(array,1)
 #ifdef _CRAYFTN
            array(icol,ilay) = p(icol,ilay)
@@ -418,11 +418,11 @@ contains
         end do
       end do
     else if(size(this%concs(igas)%conc, 2) > 1) then ! Concentration stored as 1D
+!$     print *, "[OMP] mo_gas_concentrations.F90:419 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop collapse(2) default(none) present(p)
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_concentrations.F90:419"
         do icol = 1, size(array,1)
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,ilay)
@@ -432,11 +432,11 @@ contains
         end do
       end do
     else                                             ! Concentration stored as scalar
+!$     print *, "[OMP] mo_gas_concentrations.F90:431 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop collapse(2) default(none) present(p)
       !$omp target teams distribute parallel do simd
       do ilay = 1, size(array,2)
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_concentrations.F90:431"
         do icol = 1, size(array,1)
 #ifdef _CRAYFTN
           array(icol,ilay) = p(1,1)

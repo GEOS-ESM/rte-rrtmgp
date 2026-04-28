@@ -18,7 +18,7 @@ program rte_rrtmgp_allsky
   use mo_load_aerosol_coefficients, &
                              only: load_aero_lutcoeff
   use mo_rte_config,         only: rte_config_checks
-  use omp_lib
+!$  use omp_lib
   implicit none
   ! ----------------------------------------------------------------------------------
   ! Variables
@@ -488,12 +488,12 @@ contains
     ! The two loops are the same, except applied to layers and levels 
     !   but nvfortran doesn't seems to support elemental procedures in OpenACC loops
     !
+!$     print *, "[OMP] rrtmgp_allsky.F90:491 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) 
     !$omp target teams distribute parallel do simd collapse(2) 
     do ilay = 1, nlay 
       do icol = 1, ncol 
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_allsky.F90:491"
         z = z_lay(ilay) 
         if (z > z_trop) then 
           q = q_t
@@ -515,12 +515,12 @@ contains
       end do
     end do 
 
+!$     print *, "[OMP] rrtmgp_allsky.F90:516 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) 
     !$omp target teams distribute parallel do simd collapse(2) 
     do ilay = 1, nlay+1
       do icol = 1, ncol 
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_allsky.F90:516"
         z = z_lev(ilay) 
         if (z > z_trop) then 
           q = q_t
@@ -592,12 +592,12 @@ contains
     !   total cloudiness of earth
     rel_val = 0.5 * (cloud_optics%get_min_radius_liq() + cloud_optics%get_max_radius_liq())
     rei_val = 0.5 * (cloud_optics%get_min_radius_ice() + cloud_optics%get_max_radius_ice())
+!$     print *, "[OMP] rrtmgp_allsky.F90:591 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) copyin(t_lay) copyout( lwp, iwp, rel, rei)
     !$omp target teams distribute parallel do simd collapse(2) map(to:t_lay) map(from:lwp, iwp, rel, rei)
     do ilay=1,nlay
       do icol=1,ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_allsky.F90:591"
         cloud_mask(icol,ilay) = p_lay(icol,ilay) > 100._wp * 100._wp .and. &
                                 p_lay(icol,ilay) < 900._wp * 100._wp .and. &
                                 mod(icol, 3) /= 0
@@ -664,12 +664,12 @@ contains
     !   put them in 1/2 of the columns
     !
     !
+!$     print *, "[OMP] rrtmgp_allsky.F90:661 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) copyin(p_lay) 
     !$omp target teams distribute parallel do simd collapse(2) map(to:p_lay) 
     do ilay=1,nlay
       do icol=1,ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] rrtmgp_allsky.F90:661"
         is_sulfate = (p_lay(icol,ilay) >  50._wp * 100._wp .and. & 
                       p_lay(icol,ilay) < 100._wp * 100._wp)
         is_dust    = (p_lay(icol,ilay) > 700._wp * 100._wp .and. & 
@@ -723,12 +723,12 @@ contains
     ! -------------------
 
     ! Derive layer virtual temperature
+!$     print *, "[OMP] rrtmgp_allsky.F90:718 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc                         parallel loop    collapse(2) copyin(p_lay, vmr_h2o, t_lay) copyout( relhum)
     !$omp target teams distribute parallel do simd collapse(2) map(to:p_lay, vmr_h2o, t_lay) map(from:relhum) 
     do i = 1, ncol 
        do k = 1, nlay
-         if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-         print *, "[OMP] rrtmgp_allsky.F90:718"
           ! Convert h2o vmr to mmr
           mmr_h2o = vmr_h2o(i,k) * mwd
           q_lay = mmr_h2o / (1 + mmr_h2o)

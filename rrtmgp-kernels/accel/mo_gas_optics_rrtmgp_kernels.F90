@@ -17,7 +17,7 @@
 module mo_gas_optics_rrtmgp_kernels
   use mo_rte_kind,      only: wp, wl
   use mo_rte_util_array,only: zero_array
-  use omp_lib
+!$  use omp_lib
   implicit none
   private
   public :: interpolation, compute_tau_absorption, compute_tau_rayleigh, compute_Planck_source
@@ -76,12 +76,12 @@ contains
     !$omp             map(alloc:jtemp, jpress, tropo, jeta, col_mix, fmajor, fminor) &
     !$omp             map(alloc:ftemp, fpress)
 
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:79 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector collapse(2) default(present)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:79"
         ! index and factor for temperature interpolation
         jtemp(icol,ilay) = int((tlay(icol,ilay) - (temp_ref_min - temp_ref_delta)) / temp_ref_delta)
         jtemp(icol,ilay) = min(ntemp - 1, max(1, jtemp(icol,ilay))) ! limit the index range
@@ -100,6 +100,8 @@ contains
     ! loop over implemented combinations of major species
     ! PGI BUG WORKAROUND: if present(vmr_ref) isn't there, OpenACC runtime
     ! thinks it isn't present.
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:101 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector collapse(4) default(present) private(igases)
     !$omp target teams distribute parallel do simd collapse(4) private(igases)
     do iflav = 1, nflav
@@ -107,8 +109,6 @@ contains
         ! loop over implemented combinations of major species
         do icol = 1, ncol
           do itemp = 1, 2
-            if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-            print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:101"
             igases(:) = flavor(:,iflav)
             ! itropo = 1 lower atmosphere; itropo = 2 upper atmosphere
             itropo = merge(1,2,tropo(icol,ilay))
@@ -253,11 +253,11 @@ contains
     !$omp end target
 
     if(top_at_1) then
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:252 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop
       !$omp target teams distribute parallel do simd
       do icol = 1,ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:252"
         itropo_lower(icol,2) = nlay
 #if ( defined(_CRAYFTN) && _RELEASE_MAJOR <= 14 ) || ( defined(_OPENMP) && defined(__NVCOMPILER) )
         itropo_upper(icol,1) = 1
@@ -269,11 +269,11 @@ contains
 #endif
       end do
     else
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:266 max_threads=", omp_get_max_threads()
+!$     flush(6)
       !$acc parallel loop
       !$omp target teams distribute parallel do simd
       do icol = 1,ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:266"
         itropo_lower(icol,1) = 1
 #if ( defined(_CRAYFTN) && _RELEASE_MAJOR <= 14 ) || ( defined(_OPENMP) && defined(__NVCOMPILER) )
         itropo_upper(icol,2) = nlay
@@ -389,12 +389,12 @@ contains
     ! -----------------
 
     ! optical depth calculation for major species
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:384 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:384"
 
         !$acc loop seq
         do igpt = 1, ngpt
@@ -467,12 +467,12 @@ contains
 
     extent = size(scale_by_complement,dim=1)
 
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:460 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1 , nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:460"
         !
         ! This check skips individual columns with no pressures in range
         !
@@ -561,12 +561,12 @@ contains
     integer  :: itropo
     ! -----------------
 
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:552 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:552"
         !$acc loop seq
         do igpt = 1, ngpt
           itropo = merge(1,2,tropo(icol,ilay)) ! itropo = 1 lower atmosphere; itropo = 2 upper atmosphere
@@ -629,12 +629,12 @@ contains
     !$omp             map(from: sfc_src,lay_src,lev_src,sfc_source_Jac)
 
     ! Calculation of fraction of band's Planck irradiance associated with each g-point
+!$     print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:618 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop tile(128,2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilay = 1, nlay
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_gas_optics_rrtmgp_kernels.F90:618"
 
         !$acc loop seq
         do igpt = 1, ngpt

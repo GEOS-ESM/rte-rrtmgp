@@ -16,7 +16,7 @@
 module mo_fluxes_broadband_kernels
   use, intrinsic :: iso_c_binding
   use mo_rte_kind, only: wp
-  use omp_lib
+!$  use omp_lib
   implicit none
   private
   public :: sum_broadband, net_broadband
@@ -43,12 +43,12 @@ contains
 
     !$acc enter data copyin(spectral_flux) create(broadband_flux)
     !$omp target enter data map(to:spectral_flux) map(alloc:broadband_flux)
+!$     print *, "[OMP] mo_fluxes_broadband_kernels.F90:46 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop gang vector collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_fluxes_broadband_kernels.F90:46"
 
         bb_flux_s = 0.0_wp
 
@@ -80,23 +80,23 @@ contains
 
     !$acc enter data copyin(spectral_flux_dn, spectral_flux_up) create(broadband_flux_net)
     !$omp target enter data map(to:spectral_flux_dn, spectral_flux_up) map(alloc:broadband_flux_net)
+!$     print *, "[OMP] mo_fluxes_broadband_kernels.F90:81 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_fluxes_broadband_kernels.F90:81"
         diff = spectral_flux_dn(icol, ilev, 1   ) - spectral_flux_up(icol, ilev,     1)
         broadband_flux_net(icol, ilev) = diff
       end do
     end do
+!$     print *, "[OMP] mo_fluxes_broadband_kernels.F90:89 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(3)
     !$omp target teams distribute parallel do simd collapse(3)
     do igpt = 2, ngpt
       do ilev = 1, nlev
         do icol = 1, ncol
-          if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-          print *, "[OMP] mo_fluxes_broadband_kernels.F90:89"
           diff = spectral_flux_dn(icol, ilev, igpt) - spectral_flux_up(icol, ilev, igpt)
           !$acc atomic update
           !$omp atomic update
@@ -123,12 +123,12 @@ contains
     integer  :: icol, ilev
     !$acc enter data copyin(flux_dn, flux_up) create(broadband_flux_net)
     !$omp target enter data map(to:flux_dn, flux_up) map(alloc:broadband_flux_net)
+!$     print *, "[OMP] mo_fluxes_broadband_kernels.F90:120 max_threads=", omp_get_max_threads()
+!$     flush(6)
     !$acc parallel loop collapse(2)
     !$omp target teams distribute parallel do simd collapse(2)
     do ilev = 1, nlev
       do icol = 1, ncol
-        if (omp_get_team_num()==0 .and. omp_get_thread_num()==0) &
-        print *, "[OMP] mo_fluxes_broadband_kernels.F90:120"
          broadband_flux_net(icol,ilev) = flux_dn(icol,ilev) - flux_up(icol,ilev)
        end do
     end do
