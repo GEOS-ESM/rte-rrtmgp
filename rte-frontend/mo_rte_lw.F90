@@ -45,6 +45,7 @@
 !
 ! -------------------------------------------------------------------------------------------------
 module mo_rte_lw
+  use, intrinsic :: ieee_arithmetic, only: ieee_is_nan
   use mo_rte_kind,      only: wp, wl
   use mo_rte_config,    only: check_extents, check_values
   use mo_rte_util_array,only: zero_array
@@ -249,6 +250,45 @@ contains
         error_msg = trim(optical_props%get_name()) // ': ' // trim(error_msg)
       return
     end if
+
+    if (any(ieee_is_nan(sources%lay_source))) then
+      error_msg = 'rte_lw: NaN in sources%lay_source before solver call'
+      return
+    end if
+    if (any(ieee_is_nan(sources%lev_source))) then
+      error_msg = 'rte_lw: NaN in sources%lev_source before solver call'
+      return
+    end if
+    if (any(ieee_is_nan(sources%sfc_source))) then
+      error_msg = 'rte_lw: NaN in sources%sfc_source before solver call'
+      return
+    end if
+
+    select type (optical_props)
+      class is (ty_optical_props_1scl)
+        if (any(ieee_is_nan(optical_props%tau))) then
+          error_msg = 'rte_lw: NaN in optical_props%tau before solver call'
+          return
+        end if
+      class is (ty_optical_props_2str)
+        if (any(ieee_is_nan(optical_props%tau))) then
+          error_msg = 'rte_lw: NaN in optical_props%tau before solver call'
+          return
+        end if
+        if (any(ieee_is_nan(optical_props%ssa))) then
+          error_msg = 'rte_lw: NaN in optical_props%ssa before solver call'
+          return
+        end if
+        if (any(ieee_is_nan(optical_props%g))) then
+          error_msg = 'rte_lw: NaN in optical_props%g before solver call'
+          return
+        end if
+      class is (ty_optical_props_nstr)
+        if (any(ieee_is_nan(optical_props%tau))) then
+          error_msg = 'rte_lw: NaN in optical_props%tau before solver call'
+          return
+        end if
+    end select
 
     ! ------------------------------------------------------------------------------------
     !  Boundary conditions
